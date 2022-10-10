@@ -8,21 +8,25 @@ using UnityEngine;
 
 
 namespace Illumetry.Unity {
-    public interface IGlasses {
+
+    public interface IHeadTracker {
         Pose? GetEyePose(bool left, float extrapolationTime);
-        public float? GlassesPolarizationAngle { get; }
-        public float? QuarterWaveplateAngle { get; }
-
-
-        public uint GlassesTaskRestartCount { get; }
         public uint TrackingTaskRestartCount { get; }
+    }
 
+    public interface IBatteryLevelProvider {
         public bool? IsChargerConnected();
         /// <summary>
         /// Returns the battery level in the range 0 to 1, where 1 is 100% battery level.
         /// </summary>
         /// <returns></returns>
         public float? GetBatteryLevel();
+    }
+
+    public interface IGlasses : IBatteryLevelProvider, IHeadTracker {
+        public float? GlassesPolarizationAngle { get; }
+        public float? QuarterWaveplateAngle { get; }
+        public uint GlassesTaskRestartCount { get; }
     }
 
     public class Glasses : LifeTimeControllerStateMachine, IGlasses {

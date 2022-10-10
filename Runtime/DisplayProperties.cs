@@ -27,7 +27,7 @@ namespace Illumetry.Unity {
         public GammaFunction GammaFunction;
 
         public DisplayProperties() {
-            SetDefaultProperties_IllumetryIo(this);
+           
         }
 
         public DisplayProperties(Antilatency.DeviceNetwork.INetwork network, Antilatency.DeviceNetwork.NodeHandle node) {

@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using System;
+using System.Linq;
 
 namespace Illumetry.Unity {
 
@@ -33,20 +34,34 @@ namespace Illumetry.Unity {
 
         public Vector2Int DisplayResolution = new Vector2Int(1920, 1080);
 
+        /// <summary>
+        /// Select R16G16B16A16_SFloat or R32G32B32A32_SFloat format in Inspector if HDR rendering is required
+        /// </summary>
+        public UnityEngine.Experimental.Rendering.GraphicsFormat RenderTargetFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_UNorm;
 
         public RenderTexture[] renderTextures = null;
 
         private RenderTexture GetCurrentOverdriveRenderTexture(bool left) => renderTextures[left ? 0 : 1];
         private RenderTexture GetPreviousOverdriveRenderTexture(bool left) => renderTextures[left ? 1 : 0];
         public RenderTexture currentRenderTexture;
-        public bool UseGammaCorrection = true;
-        public bool UseLimitsCorrection = true;
+
+
+        public bool UseGammaCorrection = false;
+        public bool UseLimitsCorrection = false;
         public bool UseOverdriveCorrection = true;
         public bool UseWaveplateCorrection = true;
         public bool GetWaveplateCorrectionFromHardware = true;
         public float brightness;
-        [Range(0.5f, 2)]
-        public float CommonGamma;
+        [Range(0.3f, 3)]
+        public float CommonGamma = 1.0f;
+
+
+        protected virtual void Reset() {
+            var shaders = Resources.FindObjectsOfTypeAll(typeof(Shader));
+            ImageCorrectionShader = (Shader)shaders.FirstOrDefault((m) => m.name == "Hidden/Illumetry/ImageCorrectionLCD");
+            CopyShader = (Shader)shaders.FirstOrDefault((m) => m.name == "Hidden/Illumetry/CopyShader");
+        }
+
 
         private void SetCameraPosition(Camera camera, bool left) {
             camera.transform.localRotation = Quaternion.identity;
@@ -144,9 +159,6 @@ namespace Illumetry.Unity {
             camera.Render();
 
             var cameraPositionRelativeToFrame = GetComponent<IDisplay>().GetCameraPositionRelativeToFrame(camera.transform.localPosition);
-            // ImageCorrectionMaterial.SetFloat("ColorCorrectionRed", ColorCorrectionRed);
-            // ImageCorrectionMaterial.SetFloat("ColorCorrectionGreen", ColorCorrectionGreen);
-            // ImageCorrectionMaterial.SetFloat("ColorCorrectionBlue", ColorCorrectionBlue);
 
             ImageCorrectionMaterial.SetVector("CameraPositionRelativeToFrame", cameraPositionRelativeToFrame);
             ImageCorrectionMaterial.SetTexture("CurrentFrame", currentRenderTexture);
@@ -169,26 +181,8 @@ namespace Illumetry.Unity {
             GL.Viewport(new Rect(0, left?(Screen.height- scaledResolutionY):0, Screen.width, scaledResolutionY));
 
             CopyMaterial.SetTexture("Source", GetCurrentOverdriveRenderTexture(left));
-            CopyMaterial.SetPass(0);
+            CopyMaterial.SetPass(QualitySettings.activeColorSpace == ColorSpace.Linear ? 1 : 0);
             DrawGlQuad();
-
-            /*var camera = GetComponentInChildren<Camera>();
-            SetCameraPosition(camera, left);
-            SetProjectionMatrix(camera);
-
-            var scale = (float)Screen.width / DisplayResolution.x;
-            float scaledResolutionY = DisplayResolution.y * scale;
-
-
-            GL.Viewport(new Rect(0, left?(Screen.height- scaledResolutionY):0, Screen.width, scaledResolutionY));
-
-            camera.rect = new Rect(0,1-scaledResolutionY/Screen.height,1,scaledResolutionY/Screen.height);
-
-            camera.Render();*/
-
-
-            
-
         }
 
         
@@ -283,6 +277,8 @@ namespace Illumetry.Unity {
             
 
             RenderTextureDescriptor currentRenderTextureDescriptor = overdriveRenderTextureDescriptor;
+            currentRenderTextureDescriptor.graphicsFormat = RenderTargetFormat;
+
             //currentRenderTextureDescriptor.msaaSamples = 8;
             //currentRenderTextureDescriptor.depthStencilFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.D32_SFloat;
 

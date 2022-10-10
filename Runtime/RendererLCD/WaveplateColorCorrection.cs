@@ -53,7 +53,7 @@ public class WaveplateColorCorrection : MonoBehaviour
         }
         return transmittance;
     }
-
+    /*
     [Range(0, 2)]
     public int color;
     public void OnDrawGizmos()
@@ -108,5 +108,5 @@ public class WaveplateColorCorrection : MonoBehaviour
             Gizmos.DrawSphere(bestProjection, 0.02f);
             Gizmos.DrawLine(bestProjection + 10*perp, bestProjection - 10*perp);            
         }
-    }
+    }*/
 }

@@ -13,6 +13,12 @@ using Antilatency.DeviceNetwork;
 
 namespace Illumetry.Unity {
 
+    [RequireComponent(typeof(Glasses))]
+    [RequireComponent(typeof(RendererLCD))]
+    [RequireComponent(typeof(MonoRendererLCD))]
+    [RequireComponent(typeof(MonoRenderingTracker))]
+    [RequireComponent(typeof(MonoRenderingController))]
+
     public class Display : LifeTimeControllerStateMachine, IDisplay, IEnvironmentProvider {
 
         /*public Vector3 ScreenPosition;
@@ -40,7 +46,12 @@ namespace Illumetry.Unity {
         }
 
 
-        
+        private void Reset() {
+            if(DisplayProperties == null) {
+                DisplayProperties = new DisplayProperties();
+            }
+            DisplayProperties.SetDefaultProperties_IllumetryIo(DisplayProperties);
+        }
 
         public IEnvironment Environment { get; private set; }
 

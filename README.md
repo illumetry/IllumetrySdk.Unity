@@ -1,5 +1,5 @@
 # IllumetrySdk.Unity
-The link for Unity Package Manager: https://github.com/illumetry/IllumetrySdk.Unity.git#1.0.0
+The link for Unity Package Manager: https://github.com/illumetry/IllumetrySdk.Unity.git#1.1.0
 
 ## Dependencies
 IllumetrySdk requires the AntilatencySdk package. 

@@ -8,7 +8,7 @@ using Debug = UnityEngine.Debug;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Nettle {
+namespace Illumetry.Unity {
 
     public class DefaultScreenResolution : MonoBehaviour {
 #if !UNITY_WEBGL
@@ -51,9 +51,9 @@ namespace Nettle {
         // [ConfigField]
         public int Width = 1920;
         // [ConfigField]
-        public int Height = 2205;
+        public int Height = 2760;
         // [ConfigField]
-        public bool ForceFocus = true;
+        public bool ForceFocus = false;
 
         private IntPtr _hwnd;
 

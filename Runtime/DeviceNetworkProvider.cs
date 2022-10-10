@@ -5,6 +5,7 @@ namespace Illumetry {
 
     public class DeviceNetworkProvider : LifeTimeControllerStateMachine, IDeviceNetworkProvider {
         public INetwork Network { get; private set; }
+        public bool UseIpNetworking = false;
         protected override IEnumerable StateMachine() {
 
             using var library = Antilatency.DeviceNetwork.Library.load();
@@ -23,6 +24,10 @@ namespace Illumetry {
 
             var deviceFilter = library.createFilter();
             deviceFilter.addUsbDevice(new UsbDeviceFilter { vid = UsbVendorId.Antilatency, pid = 0x0000 });
+
+            if (UseIpNetworking) {
+                deviceFilter.addIpDevice(Antilatency.DeviceNetwork.Constants.AllIpDevicesIp, Antilatency.DeviceNetwork.Constants.AllIpDevicesMask);
+            }
 
             TryCreateNetwork:
             {
