@@ -1,0 +1,15 @@
+{
+  "name": "com.illumetry.sdk",
+  "displayName": "Illumetry SDK",
+  "version": "1.0.0",
+  "author": "Illumetry",
+  "homepage": "https://illumetry.com",
+  "description": "Illumetry SDK",
+  "keywords": [
+    "illumetry",
+    "tracking"
+  ],
+  "dependencies": {
+    "com.antilatency.sdk": "4.0.0"
+  }
+}
