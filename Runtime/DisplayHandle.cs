@@ -22,25 +22,22 @@ namespace Illumetry.Unity.DisplayHandle {
 
 
         void Update() {
-
             var display = GetComponentInChildren<Display>();
             if (display) {
                 var position = -display.DisplayProperties.ScreenPosition - display.DisplayProperties.ScreenX * OriginX - display.DisplayProperties.ScreenY * OriginY;
                 
-
                 var scale = Vector3.one;
                 if (ScaleMode != TScaleMode.RealSize) {
                     var size = display.GetHalfScreenSize() * 2;
-                    if (ScaleMode == TScaleMode.WidthIsOne)
+                    if (ScaleMode == TScaleMode.WidthIsOne) {
                         scale = Vector3.one / size.x;
-                    else {
+                    } else {
                         scale = Vector3.one / size.y;
                     }
                 }
                 display.transform.localScale = scale;
                 position.Scale(scale);
                 display.transform.localPosition = position;
-
             }
         }
     }

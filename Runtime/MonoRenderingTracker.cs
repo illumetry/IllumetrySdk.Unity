@@ -8,8 +8,7 @@ using UnityEngine;
 
 
 namespace Illumetry.Unity {
-  
-
+    
     public class MonoRenderingTracker : LifeTimeControllerStateMachine, IBatteryLevelProvider, IHeadTracker {
 
         public string TrackerSocketTag = "MonoRenderingTracker";
@@ -25,8 +24,7 @@ namespace Illumetry.Unity {
             }
             return null;
         }
-
-
+        
         private void Reset() {
             this.enabled = false;
         }
@@ -70,8 +68,7 @@ namespace Illumetry.Unity {
                 yield return status;
                 goto WaitingForNetwork;
             }
-
-
+            
         WaitingForEnvironment:
             if (Destroying) yield break;
             status = "Waiting for Environment";
@@ -91,16 +88,15 @@ namespace Illumetry.Unity {
                 yield return status;
                 goto WaitingForDisplay;
             }
-
-       
+            
         WaitingForNode:
             if (Destroying) yield break;
            
             yield return status;
 
-            if (network.IsNull())
+            if (network.IsNull()) {
                 goto WaitingForNetwork;
-
+            }
 
             var altNodes = altCotaskConstructor.findSupportedNodes(network);
             var altNode = altNodes.FirstOrDefault(x => {

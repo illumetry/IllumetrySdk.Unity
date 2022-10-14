@@ -5,7 +5,6 @@ using UnityEngine;
 namespace Illumetry.Unity {
     public static class Static{
         public static T GetNext<T>(this IEnumerator<T> value) {
-
             if (!value.MoveNext()) {
                 throw new IndexOutOfRangeException();
             };

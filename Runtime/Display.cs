@@ -47,7 +47,7 @@ namespace Illumetry.Unity {
 
 
         private void Reset() {
-            if(DisplayProperties == null) {
+            if (DisplayProperties == null) {
                 DisplayProperties = new DisplayProperties();
             }
             DisplayProperties.SetDefaultProperties_IllumetryIo(DisplayProperties);
@@ -163,19 +163,12 @@ namespace Illumetry.Unity {
             */
         }
 
-
-
-
-
 #if UNITY_EDITOR
         private void OnDrawGizmos() {
-
             //Debug.Log(Node);
-
-
+            
             var matrix = Handles.matrix;
             Handles.matrix = transform.localToWorldMatrix;
-
 
             if (!Environment.IsNull()) {
                 foreach (var i in Environment.getMarkers()) {
@@ -183,15 +176,12 @@ namespace Illumetry.Unity {
                 }
             }
 
-
             Handles.matrix *= GetScreenToEnvironment();
             var halfScreenSize = GetHalfScreenSize();
 
             Handles.DrawSolidRectangleWithOutline(new Rect(-halfScreenSize, 2* halfScreenSize), new Color(0, 0, 0, 0), Color.white);
 
-
             Handles.matrix = matrix;
-
         }
 #endif
 

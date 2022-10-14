@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public class BilinearGrid : IFunc2d
-{
+public class BilinearGrid : IFunc2d {
     public static UnityEngine.Vector2 selectedPoint;
     Vector3[,] _values;
     double[] _xGridValues;
 
-    public BilinearGrid(Vector3[,] values, double[] xGridValues){ 
+    public BilinearGrid(Vector3[,] values, double[] xGridValues) { 
         _values = (Vector3[,])values.Clone();        
         _xGridValues = (double[])xGridValues.Clone();
     }
@@ -18,7 +17,7 @@ public class BilinearGrid : IFunc2d
 
     public int DoFs => 0;
 
-    public double Evaluate(double x, double y){
+    public double Evaluate(double x, double y) {
         // debug 
         /*
         UnityEngine.Vector2Int selectedPointIds = new UnityEngine.Vector2Int(0,0);
@@ -47,14 +46,14 @@ public class BilinearGrid : IFunc2d
         return res;
     }
 
-    public struct Weights{ 
+    public struct Weights { 
         public double bt, lr;    
         public Weights(double bt_, double lr_){ 
             bt = bt_;
             lr = lr_;
         }
     }
-    public UnityEngine.Vector2Int GetCell(double x, double y, out Weights weights){ 
+    public UnityEngine.Vector2Int GetCell(double x, double y, out Weights weights) { 
         x = Mathf.Clamp((float)x, 0, 0.999999f);
         y = Mathf.Clamp((float)y, 0, 0.999999f);
         var w = _values.GetLength(0);
@@ -69,7 +68,7 @@ public class BilinearGrid : IFunc2d
         if(firstLargerId < 0) firstLargerId = ~firstLargerId;
 
         int leftEdge;
-        if(firstLargerId == 0){ 
+        if (firstLargerId == 0) { 
             leftEdge = 0;
         } else if(firstLargerId >= _xGridValues.Length){ 
             leftEdge = _xGridValues.Length - 2;    
@@ -127,36 +126,34 @@ public class BilinearGrid : IFunc2d
     }
 }
 
-public class OverdriveOptimization
-{
+public class OverdriveOptimization {
     public IFunc2d[,] Functions; //[color, timemark]
 
-    public OverdriveOptimization(int nTimemarks){ 
+    public OverdriveOptimization(int nTimemarks) { 
         Functions = new IFunc2d[3, nTimemarks];
     }
 
-    public void Optimize(OverdriveDataset dataset)
-    {
+    public void Optimize(OverdriveDataset dataset) {
         Optimize(dataset, OverdriveDataset.Color.R);
         Optimize(dataset, OverdriveDataset.Color.G);
         Optimize(dataset, OverdriveDataset.Color.B);
     }
 
-    public void Optimize(OverdriveDataset dataset, OverdriveDataset.Color color){ 
+    public void Optimize(OverdriveDataset dataset, OverdriveDataset.Color color) { 
         var starts = dataset.StartsD;
-        for(int itm = 0; itm < dataset.NTimemarks; ++itm){
+        for (int itm = 0; itm < dataset.NTimemarks; ++itm) {
             var gridData = GetArrayDataForTimemark(dataset, color, itm);
             var func = new BilinearGrid(gridData, starts);
             Functions[(int)color, itm] = func;
         }
     }
 
-    public Vector3[,] GetArrayDataForTimemark(OverdriveDataset dataset, OverdriveDataset.Color color, int iTimemark){
+    public Vector3[,] GetArrayDataForTimemark(OverdriveDataset dataset, OverdriveDataset.Color color, int iTimemark) {
         var startsF = dataset.StartsF;
         var endsF = dataset.InitialEndsF;
         var result = new Vector3[startsF.Length, endsF.Length];
-        for(int iStart = 0; iStart < startsF.Length; ++iStart){
-            for(int iEnd = 0; iEnd < endsF.Length; ++iEnd){
+        for (int iStart = 0; iStart < startsF.Length; ++iStart){
+            for (int iEnd = 0; iEnd < endsF.Length; ++iEnd){
                 result[iStart, iEnd] = new Vector3(
                     startsF[iStart], 
                     dataset.GetActualEndF(iTimemark, iStart, iEnd, color), 

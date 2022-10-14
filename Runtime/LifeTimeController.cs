@@ -11,26 +11,26 @@ public class LifeTimeController : MonoBehaviour {
         //Debug.Log("OnDisable");
         DestroyInternal();
     }
-    private bool Created = false;
+    private bool _created = false;
     private void CreateInternal() {
-        if (Created)
+        if (_created)
             return;
         //Debug.Log("Creating");
 #if UNITY_EDITOR
         UnityEditor.AssemblyReloadEvents.beforeAssemblyReload += DestroyInternal;
 #endif
         Create();
-        Created = true;
+        _created = true;
     }
     private void DestroyInternal() {
-        if (!Created)
+        if (!_created)
             return;
         //Debug.Log("Destroing");
 #if UNITY_EDITOR
         UnityEditor.AssemblyReloadEvents.beforeAssemblyReload -= DestroyInternal;
 #endif
         Destroy();
-        Created = false;
+        _created = false;
     }
     protected virtual void Create() {
 

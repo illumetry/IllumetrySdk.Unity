@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-public static class ColorMethods{ 
+public static class ColorMethods { 
     public static UnityEngine.Color ToColor(this OverdriveDataset.Color color){ 
         switch(color){
             default:
@@ -28,9 +28,8 @@ public class OverdriveDataset {
             OverdriveB = overdriveB;
         }
 
-        public Int16 this[Color color]
-        {
-            get{
+        public Int16 this[Color color] {
+            get {
                 switch(color){
                     default:
                     case OverdriveDataset.Color.R: return OverdriveR;
@@ -38,7 +37,7 @@ public class OverdriveDataset {
                     case OverdriveDataset.Color.B: return OverdriveB;
                 }
             }
-            set{
+            set {
                 switch(color){
                     default:
                     case OverdriveDataset.Color.R: OverdriveR = value; return;
@@ -210,8 +209,6 @@ public class OverdriveDataset {
 
         return res;
     }*/
-
-
 
     public void Analyse(Color color){ 
         var sb = new StringBuilder();

@@ -5,8 +5,6 @@ using System.Collections;
 using System.Linq;
 using UnityEngine;
 
-
-
 namespace Illumetry.Unity {
 
     public interface IHeadTracker {
@@ -34,13 +32,12 @@ namespace Illumetry.Unity {
         public float PupillaryDistance = 0.06f;
 
         public Pose? GetEyePose(bool left, float extrapolationTime) {
-            if (TrackingCotask.IsNull())
+            if (TrackingCotask.IsNull()) {
                 return null;
+            }
             var state = TrackingCotask.getExtrapolatedState(Placement, extrapolationTime);
 
-            if (state.stability.stage == Antilatency.Alt.Tracking.Stage.Tracking6Dof
-                || state.stability.stage == Antilatency.Alt.Tracking.Stage.TrackingBlind6Dof) 
-            {
+            if (state.stability.stage == Antilatency.Alt.Tracking.Stage.Tracking6Dof || state.stability.stage == Antilatency.Alt.Tracking.Stage.TrackingBlind6Dof) {
                 state.pose.position += (left ? -0.5f : 0.5f) * PupillaryDistance * state.pose.right;
                 return state.pose;
             }

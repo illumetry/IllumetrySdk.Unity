@@ -12,6 +12,7 @@ namespace Illumetry.Unity {
         public Vector3x3() { 
             
         }
+        
         public Vector3x3(IEnumerator<float> values) {
             x = values.ReadVector3();
             y = values.ReadVector3();

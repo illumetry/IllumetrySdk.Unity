@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public class Logistic01{ 
+public class Logistic01 { 
     private float _k = 0.2f; 
     public Logistic01(float k){ 
         _k = k;    
@@ -17,7 +17,7 @@ public class Logistic01{
         return z/(1+z); 
     }  
 }
-public class Logistic01D{ 
+public class Logistic01D { 
     private double _k = 0.2; 
     public Logistic01D(double k){ 
         _k = k;    

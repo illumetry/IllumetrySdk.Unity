@@ -40,8 +40,7 @@ namespace Illumetry.Unity {
             SetCameraPosition(camera, true);
             SetProjectionMatrix(camera);
         }
-
-
+        
         protected override IEnumerable StateMachine() {
             string status = "";
 

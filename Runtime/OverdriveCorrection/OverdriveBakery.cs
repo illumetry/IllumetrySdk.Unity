@@ -5,8 +5,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEditor;
 
-public class OverdriveBakery
-{
+public class OverdriveBakery {
     public static Texture3D Bake(OverdriveDataset dataset, IFunc2d[] functions, int resolution = 16){ 
         int texWidth = 4*resolution;
         int texHeight = 4*resolution;

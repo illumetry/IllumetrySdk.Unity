@@ -43,11 +43,11 @@ public abstract class LifeTimeControllerStateMachine : LifeTimeController {
     protected override void Destroy() {
         Destroying = true;
 
-        int Iterations = 1024;
+        int iterations = 1024;
         while (Tick()) {
-            if (Iterations <= 0)
+            if (iterations <= 0)
                 throw new Exception("StateMachine does not exit. Check 'Destroing' field in every loop: if (Destroing) yield break;");
-            Iterations--;
+            iterations--;
         }
         Status = default;
         Destroying = false;

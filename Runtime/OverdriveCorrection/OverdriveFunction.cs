@@ -6,8 +6,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace Illumetry.Unity {
-public class OverdriveFunction
-{
+public class OverdriveFunction {
     public Texture3D OverdriveMapR, OverdriveMapG, OverdriveMapB;
 
     public OverdriveFunction(){ 
@@ -16,7 +15,7 @@ public class OverdriveFunction
         OverdriveMapB = new Texture3D(1, 1, 1, TextureFormat.R8, false);
     }
 
-    public OverdriveFunction(byte[] data){ 
+    public OverdriveFunction(byte[] data) { 
         using var ms = new MemoryStream(data);
         using var br = new BinaryReader(ms);
         try{ 
@@ -27,7 +26,7 @@ public class OverdriveFunction
         }
     }
 
-    public void LoadOverdriveTexturesFromFile(String path){ 
+    public void LoadOverdriveTexturesFromFile(String path) { 
         try { 
             using var fs = new FileStream(path, FileMode.Open);
             using var br = new BinaryReader(fs);
@@ -38,7 +37,7 @@ public class OverdriveFunction
         }
     }
 
-    private void BakeOverdriveTextures(OverdriveDataset dataset){ 
+    private void BakeOverdriveTextures(OverdriveDataset dataset) { 
         const int resolution = 16;
         var optimization = new OverdriveOptimization(dataset.NTimemarks);
         optimization.Optimize(dataset);

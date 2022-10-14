@@ -4,11 +4,7 @@ using System;
 using System.Linq;
 
 namespace Illumetry.Unity {
-
-    
-    public abstract class BaseRenderer : LifeTimeControllerStateMachine { 
-    
-    }
+    public abstract class BaseRenderer : LifeTimeControllerStateMachine { }
 
     [RequireComponent(typeof(WaveplateColorCorrection))]
     public class RendererLCD : LifeTimeControllerStateMachine {
@@ -68,9 +64,10 @@ namespace Illumetry.Unity {
             
             var glasses = GetComponent<IGlasses>();
             var waveplateCorrection = GetComponent<WaveplateColorCorrection>();
-            if(GetWaveplateCorrectionFromHardware){
+            
+            if (GetWaveplateCorrectionFromHardware) {
                 var display = GetComponent<IDisplay>();
-                if(display.DisplayProperties.ScreenPolarizationAngle != null && glasses.GlassesPolarizationAngle != null && glasses.QuarterWaveplateAngle != null){         
+                if (display.DisplayProperties.ScreenPolarizationAngle != null && glasses.GlassesPolarizationAngle != null && glasses.QuarterWaveplateAngle != null) {         
                     waveplateCorrection.ScreenPolarizationDeg = display.DisplayProperties.ScreenPolarizationAngle.Value;
                     waveplateCorrection.EyePolarizationAngleDeg = glasses.GlassesPolarizationAngle.Value;
                     waveplateCorrection.WaveplateAngleDeg = glasses.QuarterWaveplateAngle.Value;
@@ -81,14 +78,14 @@ namespace Illumetry.Unity {
             } 
             
             var pose = glasses?.GetEyePose(left, 0.05f);
-            if (pose.HasValue){
+            if (pose.HasValue) {
                 waveplateCorrection.GlassesRotation = pose.Value.rotation;
                 camera.transform.localPosition = pose.Value.position;
             } else {
                 camera.transform.localPosition += new Vector3(left ? -0.03f : 0.03f, 0, 0);   
             }
 
-            if(UseWaveplateCorrection){                            
+            if (UseWaveplateCorrection) {                            
                 var transmittance = waveplateCorrection.GetTransmittance();
                 transmittance.x *= transmittance.x;
                 transmittance.y *= transmittance.y;
@@ -113,25 +110,25 @@ namespace Illumetry.Unity {
             //if(camera != null){
             //    SetCameraPosition(camera, true);
             //}
-            if(UnityEngine.Input.GetKeyDown(KeyCode.F1)){ 
+            if (UnityEngine.Input.GetKeyDown(KeyCode.F1)) { 
                 UseOverdriveCorrection = true;
             }
-            if(UnityEngine.Input.GetKeyDown(KeyCode.F2)){ 
+            if (UnityEngine.Input.GetKeyDown(KeyCode.F2)) { 
                 UseOverdriveCorrection = false;
             }
-            if(UnityEngine.Input.GetKeyDown(KeyCode.F3)){ 
+            if (UnityEngine.Input.GetKeyDown(KeyCode.F3)) { 
                 UseGammaCorrection = true;
             }
-            if(UnityEngine.Input.GetKeyDown(KeyCode.F4)){ 
+            if (UnityEngine.Input.GetKeyDown(KeyCode.F4)) { 
                 UseGammaCorrection = false;
             }
-            if(UnityEngine.Input.GetKeyDown(KeyCode.F5)){ 
+            if (UnityEngine.Input.GetKeyDown(KeyCode.F5)) { 
                 UseLimitsCorrection = true;
             }
-            if(UnityEngine.Input.GetKeyDown(KeyCode.F6)){ 
+            if (UnityEngine.Input.GetKeyDown(KeyCode.F6)) { 
                 UseLimitsCorrection = false;
             }
-            if(UnityEngine.Input.GetKeyDown(KeyCode.F7)){ 
+            if (UnityEngine.Input.GetKeyDown(KeyCode.F7)) { 
                 UseWaveplateCorrection = !UseWaveplateCorrection;
             }
         }        
@@ -149,6 +146,7 @@ namespace Illumetry.Unity {
             GL.Vertex3(1, -1, 0);
             GL.End();
         }
+        
         int frameN = 0;
         private void RenderQuad(bool left) {
             var camera = GetComponentInChildren<Camera>();
@@ -185,8 +183,6 @@ namespace Illumetry.Unity {
             DrawGlQuad();
         }
 
-        
-
         float _prevTime;
         private void OnBeforeRender() {
             var time = UnityEngine.Time.realtimeSinceStartup;
@@ -205,16 +201,13 @@ namespace Illumetry.Unity {
 
             //Graphics.Blit(null, ImageCorrectionMaterial);
             //GL.PopMatrix();
-            
         }
-
 
         protected override IEnumerable StateMachine() {
             string status = "";
 
             goto WaitingForDisplay;
             //Reset:
-
 
             WaitingForDisplay:
             if (Destroying) yield break;
@@ -273,7 +266,6 @@ namespace Illumetry.Unity {
                 renderTextures[i].name = "RenderTexture_"+i;
                 renderTextures[i].filterMode = FilterMode.Point;
             }
-
             
 
             RenderTextureDescriptor currentRenderTextureDescriptor = overdriveRenderTextureDescriptor;
@@ -313,7 +305,6 @@ namespace Illumetry.Unity {
 
                     yield return "";
                 }
-
             }
         }
     }

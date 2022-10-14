@@ -1,26 +1,38 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
-public class MonoRenderingController : MonoBehaviour
-{
+namespace Illumetry.Unity {
+
+public class MonoRenderingController : MonoBehaviour {
+    [Serializable]
+    public class BoolEvent : UnityEvent<bool> {}
+
     public int ScreenWidth = 1920;
     public int ScreenHeightStereo = 2760;
     public int ScreenHeightMono = 1080;
 
     public bool MonoMode = false;
+    
+    public BoolEvent OnModeChanged;
 
-    void Start() {
+    private void Awake() {
+        OnModeChanged ??= new BoolEvent();
+    }
+
+    private void Start() {
         SetRenderingMode(MonoMode);
     }
 
-    void Update()
-    {
-        if((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && 
+    private void Update() {
+        if ((Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl)) && 
             (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) &&
             (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)) &&
             Input.GetKeyDown(KeyCode.M)) {
             SetRenderingMode(!MonoMode);
+            OnModeChanged.Invoke(MonoMode);
         }
     }
 
@@ -41,10 +53,12 @@ public class MonoRenderingController : MonoBehaviour
 
     private bool TryAccessComponent<T>(System.Action<T> action) where T: MonoBehaviour {
         var component = GetComponent<T>();
-        if(component != null) {
+        if (component != null) {
             action(component);
             return true;
         }
         return false;
     }
+}
+    
 }

@@ -1,7 +1,7 @@
 using System.Collections;
 using Antilatency.DeviceNetwork;
 
-namespace Illumetry {
+namespace Illumetry.Unity {
 
     public class DeviceNetworkProvider : LifeTimeControllerStateMachine, IDeviceNetworkProvider {
         public INetwork Network { get; private set; }
