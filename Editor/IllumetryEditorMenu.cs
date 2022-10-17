@@ -2,7 +2,6 @@ using System.Collections;
 using System.Collections.Generic;
 using Illumetry;
 using Illumetry.Unity;
-using Illumetry.Unity.DisplayHandle;
 using UnityEngine;
 using UnityEditor;
 using Display = Illumetry.Unity.Display;
@@ -31,7 +30,7 @@ namespace Illumetry.Unity.Editor {
         static Transform GenerateIllumetryDisplayHandle() {
             var displayHandleGO = new GameObject("IllumetryDisplayHandle");
 
-            displayHandleGO.AddComponent<DisplayHandle.DisplayHandle>();
+            displayHandleGO.AddComponent<DisplayHandle>();
 
             return displayHandleGO.transform;
         }

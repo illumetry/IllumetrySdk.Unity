@@ -1,0 +1,19 @@
+{
+    "name": "Illumetry.Sdk.Editor",
+    "rootNamespace": "",
+    "references": [
+        "Antilatency.SDK",
+        "Illumetry.Sdk"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

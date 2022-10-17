@@ -45,7 +45,6 @@ namespace Illumetry.Unity {
             return (environmentSpaceCameraPosition - DisplayProperties.ScreenPosition) / DisplayProperties.ScreenY.magnitude;
         }
 
-
         private void Reset() {
             if (DisplayProperties == null) {
                 DisplayProperties = new DisplayProperties();
@@ -61,7 +60,7 @@ namespace Illumetry.Unity {
 
             using var displayLibrary = Illumetry.Display.Library.load();
             using var cotaskConstructor = displayLibrary.getCotaskConstructor();
-            using var environmenSelectorLibrary = Antilatency.Alt.Environment.Selector.Library.load();
+            using var environmentSelectorLibrary = Antilatency.Alt.Environment.Selector.Library.load();
             
             string status = "";
 
@@ -94,7 +93,7 @@ namespace Illumetry.Unity {
             {
                 DisplayProperties = new DisplayProperties(network, node);
 
-                using var environment = environmenSelectorLibrary.createEnvironment(DisplayProperties.CurrentEnvironment);
+                using var environment = environmentSelectorLibrary.createEnvironment(DisplayProperties.CurrentEnvironment);
                 Environment = environment;
 
                 

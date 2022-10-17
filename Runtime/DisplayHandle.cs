@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Illumetry.Unity.DisplayHandle {
+namespace Illumetry.Unity {
 
     [ExecuteAlways]
     public class DisplayHandle : MonoBehaviour {
