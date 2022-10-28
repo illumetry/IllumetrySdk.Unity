@@ -1,7 +1,5 @@
-Shader "Hidden/Illumetry/CopyShader"
-{
-    Properties
-    {
+Shader "Hidden/Illumetry/CopyShader" {
+    Properties {
         Source ("Source", 2D) = "white" {}
     }
 
@@ -41,15 +39,13 @@ Shader "Hidden/Illumetry/CopyShader"
     }
     ENDCG
 
-    SubShader
-    {
+    SubShader {
         Cull Off
         ZWrite Off
         ZTest Always
 
         // for gamma color space
-        Pass
-        {
+        Pass {
             CGPROGRAM
             fixed4 frag (VertexOutput input) : SV_Target {
                 float2 uv = 0.5*input.screenPosition+0.5;
@@ -59,8 +55,7 @@ Shader "Hidden/Illumetry/CopyShader"
         }
 
         // for linear color space
-        Pass
-        {
+        Pass {
             CGPROGRAM
             fixed4 frag(VertexOutput input) : SV_Target {
                 float2 uv = 0.5*input.screenPosition+0.5;

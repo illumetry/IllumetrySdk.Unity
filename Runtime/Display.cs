@@ -79,8 +79,9 @@ namespace Illumetry.Unity {
             if (Destroying) yield break;
             status = "Display is not connected (USB)";
 
-            if (network.IsNull())
+            if (network.IsNull()) {
                 goto WaitingForNetwork;
+            }
 
             var nodes = cotaskConstructor.findSupportedNodes(network);
             nodes = nodes.Where(x => network.nodeGetStatus(x) == Antilatency.DeviceNetwork.NodeStatus.Idle).ToArray();

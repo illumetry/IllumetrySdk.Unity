@@ -6,8 +6,8 @@ namespace Illumetry.Unity {
     public class DeviceNetworkProvider : LifeTimeControllerStateMachine, IDeviceNetworkProvider {
         public INetwork Network { get; private set; }
         public bool UseIpNetworking = false;
+        
         protected override IEnumerable StateMachine() {
-
             using var library = Antilatency.DeviceNetwork.Library.load();
             string status = "";
 
@@ -45,7 +45,6 @@ namespace Illumetry.Unity {
                     }
                     yield return null;
                 }
-
             }
         }  
     }

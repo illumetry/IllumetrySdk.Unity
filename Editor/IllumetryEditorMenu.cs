@@ -41,10 +41,7 @@ namespace Illumetry.Unity.Editor {
             displayGO.AddComponent<DeviceNetworkProvider>();
             displayGO.AddComponent<DefaultScreenResolution>();
             displayGO.AddComponent<Glasses>();
-
-            var waveplateCC = displayGO.AddComponent<WaveplateColorCorrection>();
-            waveplateCC.Transmittance = new Vector3(0.6558238f, 0.7071067f, 0.8025268f);
-
+            displayGO.AddComponent<WaveplateColorCorrection>();
             displayGO.AddComponent<RendererLCD>();
             displayGO.AddComponent<MonoRendererLCD>();
             displayGO.AddComponent<MonoRenderingTracker>();

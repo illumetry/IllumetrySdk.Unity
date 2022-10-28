@@ -1,5 +1,6 @@
 using Antilatency.Alt.Environment;
 using Antilatency.DeviceNetwork;
+using Antilatency.InterfaceContract;
 using System;
 using System.Collections;
 using System.Linq;
@@ -116,30 +117,52 @@ namespace Illumetry.Unity {
             if (Destroying) yield break;
             status = "Glasses not connected";
 
-            if (network.IsNull())
+            if (network.IsNull()) {
                 goto WaitingForNetwork;
+            }
 
-            var glassesNodes = glassesCotaskConstructor.findSupportedNodes(network);
-            var glassesNode = glassesNodes.FirstOrDefault(x => network.nodeGetStatus(x) == NodeStatus.Idle);
+            NodeHandle glassesNode;
+            try {
+                var glassesNodes = glassesCotaskConstructor.findSupportedNodes(network);
+                glassesNode = glassesNodes.FirstOrDefault(x => network.nodeGetStatus(x) == NodeStatus.Idle);
+            }
+            catch (Antilatency.InterfaceContract.Exception e){
+                Debug.LogError(e.Message);
+                goto WaitingForNode;
+            }
 
             if (glassesNode == NodeHandle.Null) {
                 yield return status;
                 goto WaitingForNode;
             }
 
-            var placementString = network.nodeGetStringProperty(glassesNode, $"sys/Placement");
-            Placement = altLibrary.createPlacement(placementString);
-            {
-                using var propertiesReader = new AdnPropertiesReader(network, glassesNode);
-                GlassesPolarizationAngle = propertiesReader.TryRead("sys/GlassesPolarizationAngle", AdnPropertiesReader.ReadFloat);
-                QuarterWaveplateAngle = propertiesReader.TryRead("sys/QuarterWaveplateAngle", AdnPropertiesReader.ReadFloat);
+            try {
+                var placementString = network.nodeGetStringProperty(glassesNode, $"sys/Placement");
+                Placement = altLibrary.createPlacement(placementString);
+                {
+                    using var propertiesReader = new AdnPropertiesReader(network, glassesNode);
+                    GlassesPolarizationAngle = propertiesReader.TryRead("sys/GlassesPolarizationAngle", AdnPropertiesReader.ReadFloat);
+                    QuarterWaveplateAngle = propertiesReader.TryRead("sys/QuarterWaveplateAngle", AdnPropertiesReader.ReadFloat);
+                }
             }
-            status = "Alt not connected";
-            var altNodes = altCotaskConstructor.findSupportedNodes(network);
-            var altNode = altNodes.FirstOrDefault(x =>
-                network.nodeGetStatus(x) == NodeStatus.Idle
-                && network.nodeGetParent(x) == glassesNode
-            );
+            catch (Antilatency.InterfaceContract.Exception e){
+                Debug.LogError(e.Message);
+                goto WaitingForNode;
+            }
+
+            NodeHandle altNode;
+            try {
+                status = "Alt not connected";
+                var altNodes = altCotaskConstructor.findSupportedNodes(network);
+                altNode = altNodes.FirstOrDefault(x =>
+                    network.nodeGetStatus(x) == NodeStatus.Idle
+                    && network.nodeGetParent(x) == glassesNode
+                );
+            }
+            catch (Antilatency.InterfaceContract.Exception e){
+                Debug.LogError(e.Message);
+                goto WaitingForNode;
+            }
 
             if (altNode == NodeHandle.Null) {
                 yield return status;
@@ -152,8 +175,17 @@ namespace Illumetry.Unity {
             }
 
             {
-                using var glassesCotask = glassesCotaskConstructor.startTask(network, glassesNode);
-                GlassesCotask = glassesCotask;
+                Antilatency.StereoGlasses.ICotask glassesCotask = null;
+
+                try {
+                    glassesCotask = glassesCotaskConstructor.startTask(network, glassesNode);
+                    GlassesCotask = glassesCotask;
+                }
+                catch (Antilatency.InterfaceContract.Exception e) {
+                    Antilatency.Utils.SafeDispose(ref glassesCotask);
+                    Debug.LogError(e.Message);
+                    goto WaitingForNode;
+                }
 
                 displayCotask.setFrameScheduleReceiver(glassesCotask.getFrameScheduleReceiver());
                 using var _ = new Disposable(() => {
@@ -161,17 +193,32 @@ namespace Illumetry.Unity {
                         displayCotask.setFrameScheduleReceiver(null);
                     }
                 });
-
-
+                
                 if (environment.IsNull()) {
+                    Antilatency.Utils.SafeDispose(ref glassesCotask);
+                    
                     yield return status;
                     goto WaitingForEnvironment;
                 }
-                using var trackingCotask = altCotaskConstructor.startTask(network, altNode, environment);
-                TrackingCotask = trackingCotask;
+
+                Antilatency.Alt.Tracking.ITrackingCotask trackingCotask = null;
+                try {
+                    trackingCotask = altCotaskConstructor.startTask(network, altNode, environment);
+                    TrackingCotask = trackingCotask;
+                }
+                catch (Antilatency.InterfaceContract.Exception e) {
+                    Antilatency.Utils.SafeDispose(ref glassesCotask);
+                    Antilatency.Utils.SafeDispose(ref trackingCotask);
+                    
+                    Debug.LogError(e.Message);
+                    goto WaitingForNode;
+                }
 
                 while (!glassesCotask.isTaskFinished() && !trackingCotask.isTaskFinished()) {
                     if (displayCotask.IsNull()) {
+                        Antilatency.Utils.SafeDispose(ref glassesCotask);
+                        Antilatency.Utils.SafeDispose(ref trackingCotask);
+                        
                         yield return status;
                         goto WaitingForDisplay;
                     }
@@ -187,6 +234,9 @@ namespace Illumetry.Unity {
                         ++TrackingTaskRestartCount;
                     }
                 }
+
+                Antilatency.Utils.SafeDispose(ref glassesCotask);
+                Antilatency.Utils.SafeDispose(ref trackingCotask);
 
                 goto WaitingForNode;
             }

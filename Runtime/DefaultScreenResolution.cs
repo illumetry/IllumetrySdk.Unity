@@ -98,8 +98,8 @@ namespace Illumetry.Unity {
         }
 
         private IEnumerator SetResolution() {
-            Debug.Log("DefaultScreenResolution::StartCoroutine(SetResolution())::"
-                + Screen.currentResolution.width + "x" + Screen.currentResolution.height + "::FullScreenMode=" + Screen.fullScreenMode);
+            // Debug.Log("DefaultScreenResolution::StartCoroutine(SetResolution())::"
+                // + Screen.currentResolution.width + "x" + Screen.currentResolution.height + "::FullScreenMode=" + Screen.fullScreenMode);
             yield return new WaitForEndOfFrame();
             while (Enabled) {
                 if (ForceFocus && GetForegroundWindow() != _hwnd) {
@@ -112,15 +112,15 @@ namespace Illumetry.Unity {
                 if (Application.isFocused) {
                     if (Screen.currentResolution.height != Height || Screen.currentResolution.width != Width ||
                         Screen.fullScreenMode != FullScreenMode.ExclusiveFullScreen) {
-                        Debug.Log("DefaultScreenResolution::Resolution will be changed from " + Screen.currentResolution.width + "x" +
-                                  Screen.currentResolution.height + " to " + Width + "x" + Height);
+                        // Debug.Log("DefaultScreenResolution::Resolution will be changed from " + Screen.currentResolution.width + "x" +
+                                  // Screen.currentResolution.height + " to " + Width + "x" + Height);
                         if (Screen.fullScreenMode != FullScreenMode.ExclusiveFullScreen) {
-                            Debug.Log("DefaultScreenResolution::Try set ExclusiveFullScreen::Current=" + Screen.fullScreenMode);
+                            // Debug.Log("DefaultScreenResolution::Try set ExclusiveFullScreen::Current=" + Screen.fullScreenMode);
                             Screen.fullScreenMode = FullScreenMode.ExclusiveFullScreen;
                         }
                         yield return new WaitForEndOfFrame();
-                        Debug.Log("DefaultScreenResolution::Change resolution from " + Screen.currentResolution.width + "x" +
-                                  Screen.currentResolution.height + " to " + Width + "x" + Height);
+                        // Debug.Log("DefaultScreenResolution::Change resolution from " + Screen.currentResolution.width + "x" +
+                                  // Screen.currentResolution.height + " to " + Width + "x" + Height);
                         Screen.SetResolution(Width, Height, FullScreenMode.ExclusiveFullScreen);
                     }
                 }

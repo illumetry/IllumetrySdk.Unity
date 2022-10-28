@@ -1,4 +1,5 @@
 ﻿
+namespace Illumetry {
 public static partial class Static {
     public static bool IsNull(this Antilatency.InterfaceContract.IUnsafe value) {
         if (value == null)
@@ -6,7 +7,8 @@ public static partial class Static {
         if (value is Antilatency.InterfaceContract.Details.IUnsafeWrapper wrapper) {
             return !wrapper;
         }
-        return false;
-    }    
-}
 
+        return false;
+    }
+}
+}

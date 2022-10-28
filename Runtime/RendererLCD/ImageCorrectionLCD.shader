@@ -1,7 +1,5 @@
-Shader "Hidden/Illumetry/ImageCorrectionLCD"
-{
-    Properties
-    {
+Shader "Hidden/Illumetry/ImageCorrectionLCD" {
+    Properties {
         CurrentFrame ("CurrentFrame", 2D) = "white" {}
         PreviousOverdriveFrame ("PreviousOverdriveFrame", 2D) = "white" {}
         UseGammaCorrection("UseLimitsCorrection", Int) = 0
@@ -12,15 +10,12 @@ Shader "Hidden/Illumetry/ImageCorrectionLCD"
         Attenuation("Attenuation", Vector) = (1, 1, 1)
         CommonGamma("CommonGamma", Float) = 1
     }
-    SubShader
-    {
-
+    SubShader {
         Cull Off
         ZWrite Off
         ZTest Always
 
-        Pass
-        {
+        Pass {
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -40,21 +35,14 @@ Shader "Hidden/Illumetry/ImageCorrectionLCD"
 
             VertexOutput vert (VertexInput input) {
                 VertexOutput output;
-
-
-
-                output.pixelPosition = input.position;//UnityObjectToClipPos(input.position);
+                output.pixelPosition = input.position;
                 #if UNITY_UV_STARTS_AT_TOP
                     output.pixelPosition.y *= -1.0;
                 #endif
-
                 output.screenPosition = input.position;
-                //output.screenPosition.y *= -1;
-
                 return output;
             }
-
-            
+ 
             float3 Illumetry_GammaFunction_LinearX;
             float3 Illumetry_GammaFunction_LinearY;
             float3 Illumetry_GammaFunction_LinearZ;
@@ -75,8 +63,7 @@ Shader "Hidden/Illumetry/ImageCorrectionLCD"
             float2 Illumetry_GammaLimits_CrossY;
             float2 Illumetry_GammaLimits_CrossZ;
 
-
-            float3 GrayPosition(float3 pixelToCamera){
+            float3 GrayPosition(float3 pixelToCamera) {
                 float3 squared = pixelToCamera*pixelToCamera;
                 float3 cross = pixelToCamera*pixelToCamera.yzx;
 
@@ -123,16 +110,6 @@ Shader "Hidden/Illumetry/ImageCorrectionLCD"
                 );
             }           
 
-            /*
-            float2 Illumetry_DisplayResolution;
-            float2 Illumetry_DisplayBlank;
-            float Illumetry_DisplayFps;
-            float Illumetry_DisplayStrobeOffset;
-            float Illumetry_DisplayStrobeDuration;
-            float Illumetry_DisplayActivePixelsTime;
-            float Illumetry_DisplayStrobeMeanTime;
-            */
-
             sampler2D CurrentFrame;
             sampler2D PreviousOverdriveFrame;
             float3 CameraPositionRelativeToFrame;
@@ -151,13 +128,6 @@ Shader "Hidden/Illumetry/ImageCorrectionLCD"
                 float2 pixelInFrame = input.screenPosition*float2(aspect, 1);
                 float3 pixelToCamera = CameraPositionRelativeToFrame - float3(pixelInFrame, 0);
                 
-
-                //float grayCol = uv.x; 
-                //grayCol = pow(grayCol, 0.7);
-                //return fixed4(grayCol, grayCol, grayCol, 1);
-                //return fixed4(pow(Attenuation, CommonGamma), 1);
-
-
                 float3 currentFrameColor = Attenuation*tex2D(CurrentFrame, uv).xyz;
                 currentFrameColor = pow(currentFrameColor, CommonGamma)*rangeMultiplier;
                 float3 previousOverdriveFrameColor = tex2D(PreviousOverdriveFrame, uv).xyz;

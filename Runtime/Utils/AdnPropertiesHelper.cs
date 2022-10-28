@@ -4,37 +4,41 @@ using UnityEngine;
 using System.Globalization;
 using System.Collections.Generic;
 
-public class AdnPropertiesReader : IDisposable{
+namespace Illumetry.Unity {
+public class AdnPropertiesReader : IDisposable {
     Antilatency.DeviceNetwork.INetwork _network;
     Antilatency.DeviceNetwork.NodeHandle _node;
-    public AdnPropertiesReader(Antilatency.DeviceNetwork.INetwork network, Antilatency.DeviceNetwork.NodeHandle node){ 
+
+    public AdnPropertiesReader(Antilatency.DeviceNetwork.INetwork network, Antilatency.DeviceNetwork.NodeHandle node) {
         _network = network;
         _node = node;
     }
 
-    public void Dispose(){ 
+    public void Dispose() {
         _node = Antilatency.DeviceNetwork.NodeHandle.Null;
         _network = null;
     }
 
-    public T? TryRead<T>(string propertyName, Func<string, T> parser) where T: struct{
-        try{
+    public T? TryRead<T>(string propertyName, Func<string, T> parser) where T : struct {
+        try {
             var stringValue = _network.nodeGetStringProperty(_node, propertyName);
             return parser(stringValue);
-        } catch(Exception){ 
+        }
+        catch (Exception) {
             return null;
         }
     }
 
-    public T Read<T>(string propertyName, Func<string, T> parser) where T: class{
-        try{
+    public T Read<T>(string propertyName, Func<string, T> parser) where T : class {
+        try {
             var stringValue = _network.nodeGetStringProperty(_node, propertyName);
             return parser(stringValue);
-        } catch(Exception){ 
+        }
+        catch (Exception) {
             return null;
         }
     }
-   
+
 
     public static Vector3 ReadVector3(string value) {
         var parts = value
@@ -65,5 +69,6 @@ public class AdnPropertiesReader : IDisposable{
             .Split(" ", StringSplitOptions.RemoveEmptyEntries)
             .Select(x => float.Parse(x.Trim(), CultureInfo.InvariantCulture))
             .ToArray();
-    }        
+    }
+}
 }
