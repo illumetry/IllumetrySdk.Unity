@@ -1,15 +1,14 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-
-public class SpinFree : MonoBehaviour
+namespace Illumetry.Unity.Demo
 {
-    public Vector3 directionAndSpeed;
-
-    private void Update()
+    public class SpinFree : MonoBehaviour
     {
-        Vector3 step = directionAndSpeed * Time.deltaTime;
-        transform.rotation *= Quaternion.Euler(step);
+        public Vector3 directionAndSpeed;
+
+        private void Update()
+        {
+            Vector3 step = directionAndSpeed * Time.deltaTime;
+            transform.rotation *= Quaternion.Euler(step);
+        }
     }
 }

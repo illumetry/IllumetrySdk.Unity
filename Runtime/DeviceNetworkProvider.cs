@@ -1,14 +1,26 @@
+using System;
 using System.Collections;
 using Antilatency.DeviceNetwork;
+using UnityEngine;
 
 namespace Illumetry.Unity {
 
-    public class DeviceNetworkProvider : LifeTimeControllerStateMachine, IDeviceNetworkProvider {
+    public class DeviceNetworkProvider : LifeTimeControllerStateMachine, IDeviceNetworkProvider
+    {
         public INetwork Network { get; private set; }
         public bool UseIpNetworking = false;
+        public uint LastUpdateId { get; private set; }
         
+        private Antilatency.DeviceNetwork.ILibrary _library;
+
+        protected override void Destroy() {
+            base.Destroy();
+            
+            Antilatency.Utils.SafeDispose(ref _library);
+        }
+
         protected override IEnumerable StateMachine() {
-            using var library = Antilatency.DeviceNetwork.Library.load();
+            _library = Antilatency.DeviceNetwork.Library.load();
             string status = "";
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -20,9 +32,9 @@ namespace Illumetry.Unity {
             }
             jni.Dispose();
 #endif
-            library.setLogLevel(LogLevel.Info);
+            _library.setLogLevel(LogLevel.Info);
 
-            var deviceFilter = library.createFilter();
+            var deviceFilter = _library.createFilter();
             deviceFilter.addUsbDevice(new UsbDeviceFilter { vid = UsbVendorId.Antilatency, pid = 0x0000 });
 
             if (UseIpNetworking) {
@@ -34,16 +46,26 @@ namespace Illumetry.Unity {
                 if (Destroying) yield break;
                 status = "Trying to create Network";
 
-                using var network = library.createNetwork(deviceFilter);
-                Network = network;
+                using (var network = _library.createNetwork(deviceFilter)) {
+                    Network = network;
 
+                    while (!Destroying) {
+                        if (network.IsNull()) {
+                            yield return status;
+                            goto TryCreateNetwork;
+                        }
 
-                while (!Destroying) {
-                    if (network.IsNull()) {
-                        yield return status;
-                        goto TryCreateNetwork;
+                        try {
+                            if (LastUpdateId != network.getUpdateId()) {
+                                LastUpdateId = network.getUpdateId();
+                            }
+                        } catch(Antilatency.InterfaceContract.Exception e) {
+                            Debug.LogError($"Device Network is null! Message: {e.Message} \n {e.StackTrace}");
+                            goto TryCreateNetwork;
+                        }
+
+                        yield return null;
                     }
-                    yield return null;
                 }
             }
         }  

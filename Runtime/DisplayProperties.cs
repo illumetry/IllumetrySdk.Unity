@@ -31,47 +31,47 @@ namespace Illumetry.Unity {
         }
 
         public DisplayProperties(Antilatency.DeviceNetwork.INetwork network, Antilatency.DeviceNetwork.NodeHandle node) {
-            UnityEngine.Debug.Log("DisplayProperties");
-            using var propertiesReader = new AdnPropertiesReader(network, node);
+            // UnityEngine.Debug.Log("DisplayProperties");
+            using (var propertiesReader = new AdnPropertiesReader(network, node)) {
+                ScreenPosition = propertiesReader.TryRead("sys/ScreenPosition", AdnPropertiesReader.ReadVector3).Value;
+                ScreenX = propertiesReader.TryRead("sys/ScreenX", AdnPropertiesReader.ReadVector3).Value;
+                ScreenY = propertiesReader.TryRead("sys/ScreenY", AdnPropertiesReader.ReadVector3).Value;
 
-            ScreenPosition = propertiesReader.TryRead("sys/ScreenPosition", AdnPropertiesReader.ReadVector3).Value;
-            ScreenX = propertiesReader.TryRead("sys/ScreenX", AdnPropertiesReader.ReadVector3).Value;
-            ScreenY = propertiesReader.TryRead("sys/ScreenY", AdnPropertiesReader.ReadVector3).Value;
+                Resolution = propertiesReader.TryRead("sys/Resolution", AdnPropertiesReader.ReadVector2Int).Value;
+                Blank = propertiesReader.TryRead("sys/Blank", AdnPropertiesReader.ReadVector2Int).Value;
+                Fps = propertiesReader.TryRead("sys/Fps", AdnPropertiesReader.ReadFloat).Value;
 
-            Resolution = propertiesReader.TryRead("sys/Resolution", AdnPropertiesReader.ReadVector2Int).Value;
-            Blank = propertiesReader.TryRead("sys/Blank", AdnPropertiesReader.ReadVector2Int).Value;
-            Fps = propertiesReader.TryRead("sys/Fps", AdnPropertiesReader.ReadFloat).Value;
+                StrobeOffset = propertiesReader.TryRead("sys/StrobeOffset", AdnPropertiesReader.ReadInt).Value;
+                StrobeDuration = propertiesReader.TryRead("sys/StrobeDuration", AdnPropertiesReader.ReadInt).Value;
 
-            StrobeOffset = propertiesReader.TryRead("sys/StrobeOffset", AdnPropertiesReader.ReadInt).Value;
-            StrobeDuration = propertiesReader.TryRead("sys/StrobeDuration", AdnPropertiesReader.ReadInt).Value;
+                EnvironmentVariant = propertiesReader.TryRead("EnvironmentVariant", AdnPropertiesReader.ReadInt).Value;
 
-            EnvironmentVariant = propertiesReader.TryRead("EnvironmentVariant", AdnPropertiesReader.ReadInt).Value;
+                var environments = new List<string>();
+                while (true) {
+                    try {
+                        var environment = network.nodeGetStringProperty(node, $"sys/Environment{environments.Count}");
+                        environments.Add(environment);
+                    }
+                    catch (Exception ) {
+                        break;
+                    }
+                }
 
-            List<string> environments = new();
-            while (true) {
+                Environments = environments.ToArray();     
                 try {
-                    var environment = network.nodeGetStringProperty(node, $"sys/Environment{environments.Count}");
-                    environments.Add(environment);
+                    OverdriveFunction = new OverdriveFunction(network.nodeGetBinaryProperty(node, "sys/PixelResponseFunction.b"));
+                } catch (Exception ex) {
+                    Debug.LogWarning(ex);
                 }
-                catch (Exception ) {
-                    break;
+                
+                try {
+                    GammaFunction = new GammaFunction(propertiesReader.Read(GammaFunction.PropertyPath, AdnPropertiesReader.ReadFloatArray));
+                } catch (Exception ex) {
+                    Debug.LogWarning(ex);
                 }
-            }
 
-            Environments = environments.ToArray();     
-            try {
-                OverdriveFunction = new OverdriveFunction(network.nodeGetBinaryProperty(node, "sys/PixelResponseFunction.b"));
-            } catch (Exception ex) {
-                Debug.LogWarning(ex);
+                ScreenPolarizationAngle = propertiesReader.TryRead("sys/ScreenPolarizationAngle", AdnPropertiesReader.ReadFloat);
             }
-            
-            try {
-                GammaFunction = new GammaFunction(propertiesReader.Read(GammaFunction.PropertyPath, AdnPropertiesReader.ReadFloatArray));
-            } catch (Exception ex) {
-                Debug.LogWarning(ex);
-            }
-
-            ScreenPolarizationAngle = propertiesReader.TryRead("sys/ScreenPolarizationAngle", AdnPropertiesReader.ReadFloat);
         }
 
 
@@ -136,7 +136,6 @@ namespace Illumetry.Unity {
 
             properties.OverdriveFunction = null;
             properties.ScreenPolarizationAngle = null;
-
         }
 
         public void SetToShader() {

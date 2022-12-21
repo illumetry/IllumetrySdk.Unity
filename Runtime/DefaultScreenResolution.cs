@@ -2,19 +2,18 @@ using UnityEngine;
 using System.Collections;
 using System.Runtime.InteropServices;
 using System;
-using System.Diagnostics;
-using Debug = UnityEngine.Debug;
-// using EasyButtons;
-using System.Collections.Generic;
 using System.Text;
 
-namespace Illumetry.Unity {
-
-    public class DefaultScreenResolution : MonoBehaviour {
+namespace Illumetry.Unity
+{
+    public class DefaultScreenResolution : MonoBehaviour
+    {
 #if !UNITY_WEBGL
-
-
         public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        private static int _firstReceiveWidth;
+        private static int _firstReceiveHeight;
+        private static FullScreenMode _firstReceiveMode;
 
         [DllImport("user32.dll")]
         private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
@@ -46,29 +45,24 @@ namespace Illumetry.Unity {
         [DllImport("user32.dll")]
         public static extern IntPtr FindWindow(string className, string windowName);
 
-        // [ConfigField]
-        public bool Enabled = true;
-        // [ConfigField]
         public int Width = 1920;
-        // [ConfigField]
         public int Height = 2760;
-        // [ConfigField]
-        public bool ForceFocus = false;
 
-        private IntPtr _hwnd;
+        private Coroutine _updateResolutionProcess;
+
+        // public bool ForceFocus = false;
+        // private IntPtr _hwnd;
 
 #if !UNITY_EDITOR
         void Start() {
-            _hwnd = FindHWnd();
-            if (Enabled) {
-                StartCoroutine(SetResolution());
-            }
+            // _hwnd = FindHWnd();
         }
 #endif
-
-        public static string GetWindowText(IntPtr hWnd) {
+        public static string GetWindowText(IntPtr hWnd)
+        {
             int size = GetWindowTextLength(hWnd);
-            if (size > 0) {
+            if (size > 0)
+            {
                 var builder = new StringBuilder(size + 1);
                 GetWindowText(hWnd, builder, builder.Capacity);
                 return builder.ToString();
@@ -77,56 +71,109 @@ namespace Illumetry.Unity {
             return String.Empty;
         }
 
-        private IntPtr FindHWnd() {
-            Debug.Log("DefaultScreenResolution::FindHWnd::Start");
-            IntPtr result = IntPtr.Zero;
-            EnumWindows(delegate (IntPtr wnd, IntPtr param) {
-                string wndName = GetWindowText(wnd);
-                if (wndName == Application.productName) {
-                    uint pid;
-                    GetWindowThreadProcessId(wnd, out pid);
-                    if (Process.GetCurrentProcess().Id == pid) {
-                        Debug.Log("DefaultScreenResolution::FindHWnd::Founded::" + wndName + "::" + wnd + "::Process=" + Process.GetProcessById((int)pid));
-                        result = wnd;
-                        return false;
-                    }
-                }
-                return true;
-            }, IntPtr.Zero);
-            Debug.Log("DefaultScreenResolution::FindHWnd::End");
-            return result;
+        private void Awake()
+        {
+            if (_firstReceiveWidth == 0 || _firstReceiveHeight == 0)
+            {
+                _firstReceiveWidth = Screen.width;
+                _firstReceiveHeight = Screen.height;
+                _firstReceiveMode = Screen.fullScreenMode;
+            }
+        }
+        
+        private void OnEnable()
+        {
+            StartUpdateResolution();
         }
 
-        private IEnumerator SetResolution() {
-            // Debug.Log("DefaultScreenResolution::StartCoroutine(SetResolution())::"
-                // + Screen.currentResolution.width + "x" + Screen.currentResolution.height + "::FullScreenMode=" + Screen.fullScreenMode);
-            yield return new WaitForEndOfFrame();
-            while (Enabled) {
-                if (ForceFocus && GetForegroundWindow() != _hwnd) {
-                    SetForegroundWindow(_hwnd);
-                    yield return new WaitForSecondsRealtime(1.01f);
-                    ShowWindow(_hwnd, 9);
-                    yield return new WaitForSecondsRealtime(1.01f);
-                }
+        private void OnDisable()
+        {
+            StopUpdateResolutionProcess();
+            ReturnToStartResolution();
+        }
 
-                if (Application.isFocused) {
+        // private IntPtr FindHWnd() {
+        //     Debug.Log("DefaultScreenResolution::FindHWnd::Start");
+        //     IntPtr result = IntPtr.Zero;
+        //     EnumWindows(delegate (IntPtr wnd, IntPtr param) {
+        //         string wndName = GetWindowText(wnd);
+        //         if (wndName == Application.productName) {
+        //             uint pid;
+        //             GetWindowThreadProcessId(wnd, out pid);
+        //             if (Process.GetCurrentProcess().Id == pid) {
+        //                 Debug.Log("DefaultScreenResolution::FindHWnd::Founded::" + wndName + "::" + wnd + "::Process=" + Process.GetProcessById((int)pid));
+        //                 result = wnd;
+        //                 return false;
+        //             }
+        //         }
+        //         return true;
+        //     }, IntPtr.Zero);
+        //     Debug.Log("DefaultScreenResolution::FindHWnd::End");
+        //     return result;
+        // }
+
+        private void StartUpdateResolution()
+        {
+            StopUpdateResolutionProcess();
+
+#if !UNITY_EDITOR
+            _updateResolutionProcess = StartCoroutine(UpdateResolution());
+#endif
+        }
+
+        private void StopUpdateResolutionProcess()
+        {
+            if (_updateResolutionProcess != null)
+            {
+                StopCoroutine(_updateResolutionProcess);
+                _updateResolutionProcess = null;
+            }
+        }
+
+        private void ReturnToStartResolution()
+        {
+#if !UNITY_EDITOR
+            Screen.SetResolution(_firstReceiveWidth, _firstReceiveHeight, _firstReceiveMode);
+#endif
+        }
+
+        private IEnumerator UpdateResolution()
+        {
+            // Debug.Log("DefaultScreenResolution::StartCoroutine(SetResolution())::"
+            // + Screen.currentResolution.width + "x" + Screen.currentResolution.height + "::FullScreenMode=" + Screen.fullScreenMode);
+            yield return new WaitForEndOfFrame();
+            while (enabled)
+            {
+                // if (ForceFocus && GetForegroundWindow() != _hwnd) {
+                //     SetForegroundWindow(_hwnd);
+                //     yield return new WaitForSecondsRealtime(1.01f);
+                //     ShowWindow(_hwnd, 9);
+                //     yield return new WaitForSecondsRealtime(1.01f);
+                // }
+
+                if (Application.isFocused)
+                {
                     if (Screen.currentResolution.height != Height || Screen.currentResolution.width != Width ||
-                        Screen.fullScreenMode != FullScreenMode.ExclusiveFullScreen) {
+                        Screen.fullScreenMode != FullScreenMode.ExclusiveFullScreen)
+                    {
                         // Debug.Log("DefaultScreenResolution::Resolution will be changed from " + Screen.currentResolution.width + "x" +
-                                  // Screen.currentResolution.height + " to " + Width + "x" + Height);
-                        if (Screen.fullScreenMode != FullScreenMode.ExclusiveFullScreen) {
+                        // Screen.currentResolution.height + " to " + Width + "x" + Height);
+                        if (Screen.fullScreenMode != FullScreenMode.ExclusiveFullScreen)
+                        {
                             // Debug.Log("DefaultScreenResolution::Try set ExclusiveFullScreen::Current=" + Screen.fullScreenMode);
                             Screen.fullScreenMode = FullScreenMode.ExclusiveFullScreen;
                         }
+
                         yield return new WaitForEndOfFrame();
                         // Debug.Log("DefaultScreenResolution::Change resolution from " + Screen.currentResolution.width + "x" +
-                                  // Screen.currentResolution.height + " to " + Width + "x" + Height);
+                        // Screen.currentResolution.height + " to " + Width + "x" + Height);
                         Screen.SetResolution(Width, Height, FullScreenMode.ExclusiveFullScreen);
                     }
                 }
+
                 yield return new WaitForSecondsRealtime(1.01f);
             }
         }
-         #endif
+#endif
     }
 }

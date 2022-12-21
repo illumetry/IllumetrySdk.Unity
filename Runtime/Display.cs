@@ -1,8 +1,3 @@
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
-
-
 using Antilatency.Alt.Environment;
 using System;
 using System.Collections;
@@ -56,11 +51,23 @@ namespace Illumetry.Unity {
 
         public Illumetry.Display.ICotask Cotask { get; private set; }
 
+        private Illumetry.Display.ILibrary _displayLibrary;
+        private Illumetry.Display.ICotaskConstructor _cotaskConstructor;
+        private Antilatency.Alt.Environment.Selector.ILibrary _environmentSelectorLibrary;
+
+        protected override void Destroy() {
+            base.Destroy();
+            
+            Antilatency.Utils.SafeDispose(ref _environmentSelectorLibrary);
+            Antilatency.Utils.SafeDispose(ref _cotaskConstructor);
+            Antilatency.Utils.SafeDispose(ref _displayLibrary);
+        }
+
         protected override IEnumerable StateMachine() {
 
-            using var displayLibrary = Illumetry.Display.Library.load();
-            using var cotaskConstructor = displayLibrary.getCotaskConstructor();
-            using var environmentSelectorLibrary = Antilatency.Alt.Environment.Selector.Library.load();
+            _displayLibrary = Illumetry.Display.Library.load();
+            _cotaskConstructor = _displayLibrary.getCotaskConstructor();
+            _environmentSelectorLibrary = Antilatency.Alt.Environment.Selector.Library.load();
             
             string status = "";
 
@@ -83,7 +90,7 @@ namespace Illumetry.Unity {
                 goto WaitingForNetwork;
             }
 
-            var nodes = cotaskConstructor.findSupportedNodes(network);
+            var nodes = _cotaskConstructor.findSupportedNodes(network);
             nodes = nodes.Where(x => network.nodeGetStatus(x) == Antilatency.DeviceNetwork.NodeStatus.Idle).ToArray();
             if (nodes.Length == 0) {
                 yield return status;
@@ -94,24 +101,23 @@ namespace Illumetry.Unity {
             {
                 DisplayProperties = new DisplayProperties(network, node);
 
-                using var environment = environmentSelectorLibrary.createEnvironment(DisplayProperties.CurrentEnvironment);
-                Environment = environment;
+                using (var environment = _environmentSelectorLibrary.createEnvironment(DisplayProperties.CurrentEnvironment)) {
+                    Environment = environment;
 
-                
-                using var cotask = cotaskConstructor.startTask(network, node);
-                Cotask = cotask;
-                if (cotask == null){
-                    yield return status;
-                    goto WaitingForNode;
+                    using (var cotask = _cotaskConstructor.startTask(network, node)) {
+                        Cotask = cotask;
+                        if (cotask == null){
+                            yield return status;
+                            goto WaitingForNode;
+                        }
+
+                        while (!cotask.isTaskFinished()) {
+                            yield return null;
+                            if (Destroying) yield break;
+                        }
+                        goto WaitingForNode;
+                    }
                 }
-
-
-                while (!cotask.isTaskFinished()) {
-                    yield return null;
-                    if (Destroying) yield break;
-                }
-                goto WaitingForNode;
-
             }
         }
 
@@ -123,7 +129,7 @@ namespace Illumetry.Unity {
 
 
         Matrix4x4 GetProjectionMatrix(float halfScreenWidth, float halfScreenHeight, Vector3 displaySpaceCameraPosition, float nearClip, float farClip) {
-            displaySpaceCameraPosition.z = MathF.Min(displaySpaceCameraPosition.z, 0.0000000000000001f);
+            displaySpaceCameraPosition.z = Mathf.Min(displaySpaceCameraPosition.z, 0.0000000000000001f);
 
             float left = -halfScreenWidth - displaySpaceCameraPosition.x;
             float right = halfScreenWidth - displaySpaceCameraPosition.x;
@@ -162,28 +168,5 @@ namespace Illumetry.Unity {
             0   0   e   0
             */
         }
-
-#if UNITY_EDITOR
-        private void OnDrawGizmos() {
-            //Debug.Log(Node);
-            
-            var matrix = Handles.matrix;
-            Handles.matrix = transform.localToWorldMatrix;
-
-            if (!Environment.IsNull()) {
-                foreach (var i in Environment.getMarkers()) {
-                    Handles.SphereHandleCap(0, i, Quaternion.identity, 0.005f, EventType.Repaint);
-                }
-            }
-
-            Handles.matrix *= GetScreenToEnvironment();
-            var halfScreenSize = GetHalfScreenSize();
-
-            Handles.DrawSolidRectangleWithOutline(new Rect(-halfScreenSize, 2* halfScreenSize), new Color(0, 0, 0, 0), Color.white);
-
-            Handles.matrix = matrix;
-        }
-#endif
-
     }
 }

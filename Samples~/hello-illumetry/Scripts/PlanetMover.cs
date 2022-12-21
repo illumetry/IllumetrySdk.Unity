@@ -1,17 +1,18 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class PlanetMover : MonoBehaviour
+namespace Illumetry.Unity.Demo
 {
-   public Vector3 startPosition;
-   public Vector3 finalPosition;
+    public class PlanetMover : MonoBehaviour
+    {
+        public Vector3 startPosition;
+        public Vector3 finalPosition;
 
-   public void UpdateMove(float progress)
-   {
-       Vector3 direction = finalPosition - startPosition;
-       Vector3 positionPlanet = startPosition + (direction * progress);
+        public void UpdateMove(float progress)
+        {
+            Vector3 direction = finalPosition - startPosition;
+            Vector3 positionPlanet = startPosition + (direction * progress);
 
-       transform.position = positionPlanet;
-   }
+            transform.position = positionPlanet;
+        }
+    }
 }

@@ -5,7 +5,9 @@ using System;
 using System.Linq;
 
 namespace Illumetry.Unity {
-public class MonoRendererLCD : LifeTimeControllerStateMachine {
+public class MonoRendererLCD : LifeTimeControllerStateMachine
+{
+    public static event Action OnBeforeRenderer; 
     private List<IHeadTracker> _trackers = new List<IHeadTracker>();
     
     private void Reset() {
@@ -35,6 +37,7 @@ public class MonoRendererLCD : LifeTimeControllerStateMachine {
     }
 
     private void OnBeforeRender() {
+        OnBeforeRenderer?.Invoke();
         var camera = GetComponentInChildren<Camera>();
         SetCameraPosition(camera, true);
         SetProjectionMatrix(camera);
@@ -76,12 +79,10 @@ public class MonoRendererLCD : LifeTimeControllerStateMachine {
 
         {
             Application.onBeforeRender += OnBeforeRender;
-            using var _ = new Disposable(() => {
-                Application.onBeforeRender -= OnBeforeRender;
-            });
-
-            while (!Destroying) {
-                yield return "";
+            using (var _ = new Disposable(() => { Application.onBeforeRender -= OnBeforeRender; })) {
+                while (!Destroying) {
+                    yield return "";
+                }
             }
         }
     }

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Illumetry;
 using Illumetry.Unity;
+using Illumetry.Unity.Stylus;
 using UnityEngine;
 using UnityEditor;
 using Display = Illumetry.Unity.Display;
@@ -30,14 +31,15 @@ namespace Illumetry.Unity.Editor {
         static Transform GenerateIllumetryDisplayHandle() {
             var displayHandleGO = new GameObject("IllumetryDisplayHandle");
 
+            displayHandleGO.AddComponent<RequiredSettingsApplyer>();
             displayHandleGO.AddComponent<DisplayHandle>();
-
+            
             return displayHandleGO.transform;
         }
 
         static Transform GenerateIllumetryDisplay() {
             var displayGO = new GameObject("IllumetryDisplay");
-
+            
             displayGO.AddComponent<DeviceNetworkProvider>();
             displayGO.AddComponent<DefaultScreenResolution>();
             displayGO.AddComponent<Glasses>();
@@ -47,7 +49,8 @@ namespace Illumetry.Unity.Editor {
             displayGO.AddComponent<MonoRenderingTracker>();
             displayGO.AddComponent<MonoRenderingController>();
             displayGO.AddComponent<Display>();
-
+            displayGO.AddComponent<StylusesCreator>();
+            
             return displayGO.transform;
         }
 

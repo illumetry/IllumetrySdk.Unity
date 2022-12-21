@@ -15,23 +15,27 @@ public class OverdriveFunction {
         OverdriveMapB = new Texture3D(1, 1, 1, TextureFormat.R8, false);
     }
 
-    public OverdriveFunction(byte[] data) { 
-        using var ms = new MemoryStream(data);
-        using var br = new BinaryReader(ms);
-        try{ 
-            var dataset = new OverdriveDataset(br);
-            BakeOverdriveTextures(dataset);
-        } catch(Exception e){ 
-            UnityEngine.Debug.Log($"error in OverdriveFucntion(byte[] data): {e.Message}");        
+    public OverdriveFunction(byte[] data) {
+        using (var ms = new MemoryStream(data)) {
+            using (var br = new BinaryReader(ms)) {
+                try{ 
+                    var dataset = new OverdriveDataset(br);
+                    BakeOverdriveTextures(dataset);
+                } catch(Exception e){ 
+                    UnityEngine.Debug.Log($"error in OverdriveFucntion(byte[] data): {e.Message}");        
+                }
+            }
         }
     }
 
     public void LoadOverdriveTexturesFromFile(String path) { 
-        try { 
-            using var fs = new FileStream(path, FileMode.Open);
-            using var br = new BinaryReader(fs);
-            var dataset =  new OverdriveDataset(br);        
-            BakeOverdriveTextures(dataset); 
+        try {
+            using (var fs = new FileStream(path, FileMode.Open)) {
+                using (var br = new BinaryReader(fs)) {
+                    var dataset =  new OverdriveDataset(br);        
+                    BakeOverdriveTextures(dataset); 
+                }
+            }
         } catch(Exception e){ 
             UnityEngine.Debug.Log($"error in LoadOverdriveTexturesFromFile: {e.Message}");
         }

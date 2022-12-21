@@ -19,7 +19,9 @@ public class MonoRenderingController : MonoBehaviour {
     public BoolEvent OnModeChanged;
 
     private void Awake() {
-        OnModeChanged ??= new BoolEvent();
+        if (OnModeChanged == null) {
+            OnModeChanged = new BoolEvent();
+        }
     }
 
     private void Start() {

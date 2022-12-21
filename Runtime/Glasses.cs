@@ -10,22 +10,22 @@ namespace Illumetry.Unity {
 
     public interface IHeadTracker {
         Pose? GetEyePose(bool left, float extrapolationTime);
-        public uint TrackingTaskRestartCount { get; }
+        uint TrackingTaskRestartCount { get; }
     }
 
     public interface IBatteryLevelProvider {
-        public bool? IsChargerConnected();
+        bool? IsChargerConnected();
         /// <summary>
         /// Returns the battery level in the range 0 to 1, where 1 is 100% battery level.
         /// </summary>
         /// <returns></returns>
-        public float? GetBatteryLevel();
+        float? GetBatteryLevel();
     }
 
     public interface IGlasses : IBatteryLevelProvider, IHeadTracker {
-        public float? GlassesPolarizationAngle { get; }
-        public float? QuarterWaveplateAngle { get; }
-        public uint GlassesTaskRestartCount { get; }
+        float? GlassesPolarizationAngle { get; }
+        float? QuarterWaveplateAngle { get; }
+        uint GlassesTaskRestartCount { get; }
     }
 
     public class Glasses : LifeTimeControllerStateMachine, IGlasses {
@@ -71,13 +71,28 @@ namespace Illumetry.Unity {
         public uint GlassesTaskRestartCount { get; private set; }
         public uint TrackingTaskRestartCount { get; private set; }
 
+        private Antilatency.StereoGlasses.ILibrary _glassesLibrary;
+        private Antilatency.StereoGlasses.ICotaskConstructor _glassesCotaskConstructor;
+        
+        private Antilatency.Alt.Tracking.ILibrary _altLibrary;
+        private Antilatency.Alt.Tracking.ITrackingCotaskConstructor _altCotaskConstructor;
+
+        protected override void Destroy() {
+            base.Destroy();
+            
+            Antilatency.Utils.SafeDispose(ref _glassesCotaskConstructor);
+            Antilatency.Utils.SafeDispose(ref _glassesLibrary);
+            Antilatency.Utils.SafeDispose(ref _altCotaskConstructor);
+            Antilatency.Utils.SafeDispose(ref _altLibrary);
+        }
+
         protected override IEnumerable StateMachine() {
 
-            using var glassesLibrary = Antilatency.StereoGlasses.Library.load();
-            using var glassesCotaskConstructor = glassesLibrary.getCotaskConstructor();
+            _glassesLibrary = Antilatency.StereoGlasses.Library.load();
+            _glassesCotaskConstructor = _glassesLibrary.getCotaskConstructor();
 
-            using var altLibrary = Antilatency.Alt.Tracking.Library.load();
-            using var altCotaskConstructor = altLibrary.createTrackingCotaskConstructor();
+            _altLibrary = Antilatency.Alt.Tracking.Library.load();
+            _altCotaskConstructor = _altLibrary.createTrackingCotaskConstructor();
 
             string status = "";
 
@@ -123,7 +138,7 @@ namespace Illumetry.Unity {
 
             NodeHandle glassesNode;
             try {
-                var glassesNodes = glassesCotaskConstructor.findSupportedNodes(network);
+                var glassesNodes = _glassesCotaskConstructor.findSupportedNodes(network);
                 glassesNode = glassesNodes.FirstOrDefault(x => network.nodeGetStatus(x) == NodeStatus.Idle);
             }
             catch (Antilatency.InterfaceContract.Exception e){
@@ -138,9 +153,9 @@ namespace Illumetry.Unity {
 
             try {
                 var placementString = network.nodeGetStringProperty(glassesNode, $"sys/Placement");
-                Placement = altLibrary.createPlacement(placementString);
-                {
-                    using var propertiesReader = new AdnPropertiesReader(network, glassesNode);
+                Placement = _altLibrary.createPlacement(placementString);
+                
+                using (var propertiesReader = new AdnPropertiesReader(network, glassesNode)) {
                     GlassesPolarizationAngle = propertiesReader.TryRead("sys/GlassesPolarizationAngle", AdnPropertiesReader.ReadFloat);
                     QuarterWaveplateAngle = propertiesReader.TryRead("sys/QuarterWaveplateAngle", AdnPropertiesReader.ReadFloat);
                 }
@@ -153,7 +168,7 @@ namespace Illumetry.Unity {
             NodeHandle altNode;
             try {
                 status = "Alt not connected";
-                var altNodes = altCotaskConstructor.findSupportedNodes(network);
+                var altNodes = _altCotaskConstructor.findSupportedNodes(network);
                 altNode = altNodes.FirstOrDefault(x =>
                     network.nodeGetStatus(x) == NodeStatus.Idle
                     && network.nodeGetParent(x) == glassesNode
@@ -178,7 +193,7 @@ namespace Illumetry.Unity {
                 Antilatency.StereoGlasses.ICotask glassesCotask = null;
 
                 try {
-                    glassesCotask = glassesCotaskConstructor.startTask(network, glassesNode);
+                    glassesCotask = _glassesCotaskConstructor.startTask(network, glassesNode);
                     GlassesCotask = glassesCotask;
                 }
                 catch (Antilatency.InterfaceContract.Exception e) {
@@ -188,57 +203,59 @@ namespace Illumetry.Unity {
                 }
 
                 displayCotask.setFrameScheduleReceiver(glassesCotask.getFrameScheduleReceiver());
-                using var _ = new Disposable(() => {
-                    if (!displayCotask.IsNull()) {
-                        displayCotask.setFrameScheduleReceiver(null);
+                using (var _ = new Disposable(() => {
+                        if (!displayCotask.IsNull()) {
+                            displayCotask.setFrameScheduleReceiver(null);
+                        }
                     }
-                });
-                
-                if (environment.IsNull()) {
-                    Antilatency.Utils.SafeDispose(ref glassesCotask);
+                )) {
                     
-                    yield return status;
-                    goto WaitingForEnvironment;
-                }
-
-                Antilatency.Alt.Tracking.ITrackingCotask trackingCotask = null;
-                try {
-                    trackingCotask = altCotaskConstructor.startTask(network, altNode, environment);
-                    TrackingCotask = trackingCotask;
-                }
-                catch (Antilatency.InterfaceContract.Exception e) {
-                    Antilatency.Utils.SafeDispose(ref glassesCotask);
-                    Antilatency.Utils.SafeDispose(ref trackingCotask);
+                    if (environment.IsNull()) {
+                        Antilatency.Utils.SafeDispose(ref glassesCotask);
                     
-                    Debug.LogError(e.Message);
-                    goto WaitingForNode;
-                }
+                        yield return status;
+                        goto WaitingForEnvironment;
+                    }
 
-                while (!glassesCotask.isTaskFinished() && !trackingCotask.isTaskFinished()) {
-                    if (displayCotask.IsNull()) {
+                    Antilatency.Alt.Tracking.ITrackingCotask trackingCotask = null;
+                    try {
+                        trackingCotask = _altCotaskConstructor.startTask(network, altNode, environment);
+                        TrackingCotask = trackingCotask;
+                    }
+                    catch (Antilatency.InterfaceContract.Exception e) {
                         Antilatency.Utils.SafeDispose(ref glassesCotask);
                         Antilatency.Utils.SafeDispose(ref trackingCotask);
+                    
+                        Debug.LogError(e.Message);
+                        goto WaitingForNode;
+                    }
+
+                    while (!glassesCotask.isTaskFinished() && !trackingCotask.isTaskFinished()) {
+                        if (displayCotask.IsNull()) {
+                            Antilatency.Utils.SafeDispose(ref glassesCotask);
+                            Antilatency.Utils.SafeDispose(ref trackingCotask);
                         
-                        yield return status;
-                        goto WaitingForDisplay;
+                            yield return status;
+                            goto WaitingForDisplay;
+                        }
+
+                        yield return "";
+                        if (Destroying) yield break;
                     }
 
-                    yield return "";
-                    if (Destroying) yield break;
-                }
-
-                if (glassesCotask.isTaskFinished()) {
-                    ++GlassesTaskRestartCount;
-                } else {
-                    if (trackingCotask.isTaskFinished()) {
-                        ++TrackingTaskRestartCount;
+                    if (glassesCotask.isTaskFinished()) {
+                        ++GlassesTaskRestartCount;
+                    } else {
+                        if (trackingCotask.isTaskFinished()) {
+                            ++TrackingTaskRestartCount;
+                        }
                     }
+
+                    Antilatency.Utils.SafeDispose(ref glassesCotask);
+                    Antilatency.Utils.SafeDispose(ref trackingCotask);
+
+                    goto WaitingForNode;
                 }
-
-                Antilatency.Utils.SafeDispose(ref glassesCotask);
-                Antilatency.Utils.SafeDispose(ref trackingCotask);
-
-                goto WaitingForNode;
             }
         }
     }

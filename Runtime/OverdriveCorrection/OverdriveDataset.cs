@@ -4,6 +4,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using UnityEngine;
 
 namespace Illumetry.Unity {
 public static class ColorMethods {
@@ -181,14 +182,14 @@ public class OverdriveDataset {
                     int initialEnd = InitialEnds[iEnd];
                     var sample = Data[itm, iStart, iEnd];
                     if (iStart < iEnd) {
-                        bw.Write((byte)Math.Clamp(sample.OverdriveR - initialEnd, 0, 255));
-                        bw.Write((byte)Math.Clamp(sample.OverdriveG - initialEnd, 0, 255));
-                        bw.Write((byte)Math.Clamp(sample.OverdriveB - initialEnd, 0, 255));
+                        bw.Write((byte)Mathf.Clamp(sample.OverdriveR - initialEnd, 0, 255));
+                        bw.Write((byte)Mathf.Clamp(sample.OverdriveG - initialEnd, 0, 255));
+                        bw.Write((byte)Mathf.Clamp(sample.OverdriveB - initialEnd, 0, 255));
                     }
                     else {
-                        bw.Write((byte)Math.Clamp(initialEnd - sample.OverdriveR, 0, 255));
-                        bw.Write((byte)Math.Clamp(initialEnd - sample.OverdriveG, 0, 255));
-                        bw.Write((byte)Math.Clamp(initialEnd - sample.OverdriveB, 0, 255));
+                        bw.Write((byte)Mathf.Clamp(initialEnd - sample.OverdriveR, 0, 255));
+                        bw.Write((byte)Mathf.Clamp(initialEnd - sample.OverdriveG, 0, 255));
+                        bw.Write((byte)Mathf.Clamp(initialEnd - sample.OverdriveB, 0, 255));
                     }
                 }
             }
@@ -265,14 +266,14 @@ public class OverdriveDataset {
         Int16 overdrive = Data[iTimemark, iStart, iEnd][color];
         byte end;
         if (overdrive > 255) {
-            end = (byte)Math.Clamp(initialEnd - (overdrive - 255), 0, 255);
+            end = (byte)Mathf.Clamp(initialEnd - (overdrive - 255), 0, 255);
         }
         else {
             if (overdrive < 0) {
-                end = (byte)Math.Clamp(initialEnd - overdrive, 0, 255);
+                end = (byte)Mathf.Clamp(initialEnd - overdrive, 0, 255);
             }
             else {
-                end = (byte)Math.Clamp(initialEnd, 0, 255);
+                end = (byte)Mathf.Clamp(initialEnd, 0, 255);
             }
         }
 
@@ -296,7 +297,7 @@ public class OverdriveDataset {
     }
 
     public static byte FloatToByte(float f) {
-        return (byte)Math.Clamp(f * 255, 0, 255);
+        return (byte)Mathf.Clamp(f * 255, 0, 255);
     }
 
     static byte[] ReadByteArray(BinaryReader br) {

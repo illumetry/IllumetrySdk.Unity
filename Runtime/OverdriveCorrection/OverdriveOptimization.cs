@@ -91,9 +91,9 @@ public class BilinearGrid : IFunc2d {
         var b = _values[leftEdge + 1, bottomEdge];
         var constPartOfEdgeEquation = (x - a.x) / (b.x - a.x);
         Func<int, double> edgeVal = row => {
-            var a = _values[leftEdge, row];
-            var b = _values[leftEdge + 1, row];
-            return a.y + (b.y - a.y) * constPartOfEdgeEquation;
+            var a_ = _values[leftEdge, row];
+            var b_ = _values[leftEdge + 1, row];
+            return a_.y + (b_.y - a_.y) * constPartOfEdgeEquation;
         };
 
         double bottomEdgeVal = edgeVal(bottomEdge);

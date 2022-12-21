@@ -66,7 +66,7 @@ public class AdnPropertiesReader : IDisposable {
 
     public static float[] ReadFloatArray(string value) {
         return value
-            .Split(" ", StringSplitOptions.RemoveEmptyEntries)
+            .Split(new []{' '}, StringSplitOptions.RemoveEmptyEntries)
             .Select(x => float.Parse(x.Trim(), CultureInfo.InvariantCulture))
             .ToArray();
     }

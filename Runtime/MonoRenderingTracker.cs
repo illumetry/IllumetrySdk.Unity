@@ -2,10 +2,8 @@ using Antilatency.Alt.Environment;
 using Antilatency.DeviceNetwork;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-
 
 namespace Illumetry.Unity {
     
@@ -52,11 +50,24 @@ namespace Illumetry.Unity {
         private Antilatency.DeviceNetwork.ICotaskBatteryPowered BatteryCotask { get; set; }
         public Pose Placement { get; private set; }
         public uint TrackingTaskRestartCount { get; private set; }
+        
+        private Antilatency.Alt.Tracking.ILibrary _altLibrary;
+        private Antilatency.Alt.Tracking.ITrackingCotaskConstructor _altCotaskConstructor;
+        private Antilatency.StorageClient.ILibrary _storageClientLibrary;
+
+        protected override void Destroy() {
+            base.Destroy();
+            
+            Antilatency.Utils.SafeDispose(ref _storageClientLibrary);
+            Antilatency.Utils.SafeDispose(ref _altCotaskConstructor);
+            Antilatency.Utils.SafeDispose(ref _altLibrary);
+        }
 
         protected override IEnumerable StateMachine() {
-            using var altLibrary = Antilatency.Alt.Tracking.Library.load();
-            using var storageClientLibrary = Antilatency.StorageClient.Library.load();
-            using var altCotaskConstructor = altLibrary.createTrackingCotaskConstructor();
+            _altLibrary = Antilatency.Alt.Tracking.Library.load();
+            _storageClientLibrary = Antilatency.StorageClient.Library.load();
+            _altCotaskConstructor = _altLibrary.createTrackingCotaskConstructor();
+            
             string status = "";
 
         WaitingForNetwork:
@@ -98,7 +109,7 @@ namespace Illumetry.Unity {
                 goto WaitingForNetwork;
             }
 
-            var altNodes = altCotaskConstructor.findSupportedNodes(network);
+            var altNodes = _altCotaskConstructor.findSupportedNodes(network);
             var altNode = altNodes.FirstOrDefault(x => {
                 if (network.nodeGetStatus(x) != NodeStatus.Idle) {
                     status = "Alt not connected";
@@ -132,10 +143,11 @@ namespace Illumetry.Unity {
             }
 
 
-            if (placementString == null && storageClientLibrary != null) {
+            if (placementString == null && _storageClientLibrary != null) {
                 try {
-                    using var localStorage = storageClientLibrary.getLocalStorage();
-                    placementString = localStorage.read("placement", "default");
+                    using (var localStorage = _storageClientLibrary.getLocalStorage()) {
+                        placementString = localStorage.read("placement", "default");
+                    }
                 }
                 catch (Exception) {
                     status = $"No \"Placement\" property in socket with tag \"{TrackerSocketTag}\" and no placement in AntilatencyStorage";
@@ -147,7 +159,7 @@ namespace Illumetry.Unity {
             }
                 
 
-            Placement = altLibrary.createPlacement(placementString);
+            Placement = _altLibrary.createPlacement(placementString);
 
             if (displayCotask.IsNull()) {
                 yield return status;
@@ -159,21 +171,23 @@ namespace Illumetry.Unity {
                     yield return status;
                     goto WaitingForEnvironment;
                 }
-                using var trackingCotask = altCotaskConstructor.startTask(network, altNode, environment);
-                TrackingCotask = trackingCotask;
 
-                while (!trackingCotask.isTaskFinished()) {
-                    if (displayCotask.IsNull()) {
-                        yield return status;
-                        goto WaitingForDisplay;
+                using (var trackingCotask = _altCotaskConstructor.startTask(network, altNode, environment)) {
+                    TrackingCotask = trackingCotask;
+
+                    while (!trackingCotask.isTaskFinished()) {
+                        if (displayCotask.IsNull()) {
+                            yield return status;
+                            goto WaitingForDisplay;
+                        }
+
+                        yield return "";
+                        if (Destroying) yield break;
                     }
 
-                    yield return "";
-                    if (Destroying) yield break;
+                    ++TrackingTaskRestartCount;
+                    goto WaitingForNode;
                 }
-
-                ++TrackingTaskRestartCount;
-                goto WaitingForNode;
             }
         }
     }
