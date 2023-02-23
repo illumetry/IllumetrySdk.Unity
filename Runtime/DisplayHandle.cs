@@ -13,7 +13,7 @@ namespace Illumetry.Unity {
 
         public static DisplayHandle Instance;
 
-        [Range(-1,1)]
+        [Range(-1, 1)]
         public int OriginX = 0;
 
         [Range(-1, 1)]
@@ -33,19 +33,16 @@ namespace Illumetry.Unity {
         private Display _display = null;
 
 #if UNITY_EDITOR
-        private void OnValidate()
-        {
+        private void OnValidate() {
             TryCreateAndSetRequaredSettingsApplyer();
         }
 
-        private void Reset()
-        {
+        private void Reset() {
             TryCreateAndSetRequaredSettingsApplyer();
         }
 #endif
 
-        private void Awake()
-        {
+        private void Awake() {
             TryCreateAndSetRequaredSettingsApplyer();
         }
 
@@ -53,12 +50,9 @@ namespace Illumetry.Unity {
             FindDisplay();
         }
 
-        private void OnEnable()
-        {
-            if(Instance != null)
-            {
-                if(Application.isEditor || Debug.isDebugBuild)
-                {
+        private void OnEnable() {
+            if (Instance != null) {
+                if (Application.isEditor || Debug.isDebugBuild) {
                     Debug.LogError("Detected dublicate display handle. Will ignoring new instance display handle! Use one active display handle on scene!");
                 }
 
@@ -68,10 +62,8 @@ namespace Illumetry.Unity {
             Instance = this;
         }
 
-        private void TryCreateAndSetRequaredSettingsApplyer()
-        {
-            if (GetComponent<RequiredSettingsApplyer>() == null)
-            {
+        private void TryCreateAndSetRequaredSettingsApplyer() {
+            if (GetComponent<RequiredSettingsApplyer>() == null) {
                 Debug.LogWarning(
                     $"RequaredSettingsApplyer component don't found! Force create RequaredSettingsApplyer! Please check gameobject: {gameObject.name}");
 
@@ -80,21 +72,22 @@ namespace Illumetry.Unity {
         }
 
         private void Update() {
-            
+
             if (_display == null) {
                 if (!FindDisplay()) {
                     return;
                 }
             }
-            
+
             var position = -_display.DisplayProperties.ScreenPosition - _display.DisplayProperties.ScreenX * OriginX - _display.DisplayProperties.ScreenY * OriginY;
-                
+
             var scale = Vector3.one;
             if (ScaleMode != TScaleMode.RealSize) {
                 var size = _display.GetHalfScreenSize() * 2;
                 if (ScaleMode == TScaleMode.WidthIsOne) {
                     scale = Vector3.one / size.x;
-                } else {
+                }
+                else {
                     scale = Vector3.one / size.y;
                 }
             }
@@ -102,18 +95,18 @@ namespace Illumetry.Unity {
             position.Scale(scale);
             _display.transform.localPosition = position;
         }
-        
+
         private bool FindDisplay() {
             _display = GetComponentInChildren<Display>();
             return _display != null;
         }
-        
+
 #if UNITY_EDITOR
         private void OnDrawGizmos() {
             if (_display == null) {
                 return;
             }
-            
+
             var matrix = Handles.matrix;
             Handles.matrix = _display.transform.localToWorldMatrix;
 
@@ -127,7 +120,7 @@ namespace Illumetry.Unity {
                 Handles.matrix *= _display.GetScreenToEnvironment();
                 var halfScreenSize = _display.GetHalfScreenSize();
 
-                Handles.DrawSolidRectangleWithOutline(new Rect(-halfScreenSize, 2* halfScreenSize), new Color(0, 0, 0, 0), Color.white);
+                Handles.DrawSolidRectangleWithOutline(new Rect(-halfScreenSize, 2 * halfScreenSize), new Color(0, 0, 0, 0), Color.white);
             }
 
             if (ShowRuler) {
@@ -139,7 +132,7 @@ namespace Illumetry.Unity {
 
         private void DrawRuler() {
             var halfScreenSize = _display.GetHalfScreenSize();
-            
+
             var rulerStart = new Vector3(0.0f, -halfScreenSize.y, 0.0f);
             const float rulerLength = 1.5f;
             var rulerEnd = rulerStart + Vector3.back * rulerLength;
@@ -150,7 +143,7 @@ namespace Illumetry.Unity {
             for (var i = 1; i <= marksCount; ++i) {
                 DrawRulerMark(rulerStart + Vector3.back * distanceBetweenMarks * i, distanceBetweenMarks * i);
             }
-                
+
             Handles.DrawLine(rulerStart, rulerEnd);
         }
 

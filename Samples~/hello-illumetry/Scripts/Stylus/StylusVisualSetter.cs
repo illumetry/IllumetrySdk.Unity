@@ -1,11 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Illumetry.Unity.Demo
-{
+namespace Illumetry.Unity.Demo {
     using Illumetry.Unity.Stylus;
-    public class StylusVisualSetter : MonoBehaviour
-    {
+    public class StylusVisualSetter : MonoBehaviour {
         [SerializeField] private Stylus _stylus;
         [SerializeField] private List<StylusVisualContainer> _visuals = new List<StylusVisualContainer>();
         [SerializeField] private float _maxPressTimeForDetectClick = 1.5f;
@@ -13,17 +11,13 @@ namespace Illumetry.Unity.Demo
         private bool _previousPhaseStylusButton;
         private float _startPressButtonTime;
 
-        private void OnEnable()
-        {
-            if (_stylus != null)
-            {
+        private void OnEnable() {
+            if (_stylus != null) {
                 _stylus.OnUpdatedButtonPhase += OnUpdatedButtonPhase;
             }
 
-            foreach (var visual in _visuals)
-            {
-                if (!IsValidVisualContainer(visual))
-                {
+            foreach (var visual in _visuals) {
+                if (!IsValidVisualContainer(visual)) {
                     continue;
                 }
 
@@ -35,32 +29,25 @@ namespace Illumetry.Unity.Demo
             UpdateSelectedVisual();
         }
 
-        private void OnDisable()
-        {
-            if (_stylus != null)
-            {
+        private void OnDisable() {
+            if (_stylus != null) {
                 _stylus.OnUpdatedButtonPhase -= OnUpdatedButtonPhase;
             }
         }
 
-        private void OnDestroy()
-        {
-            if (_stylus != null)
-            {
+        private void OnDestroy() {
+            if (_stylus != null) {
                 _stylus.OnUpdatedButtonPhase -= OnUpdatedButtonPhase;
             }
         }
 
-        internal void SetStylus(Stylus stylus)
-        {
-            if (stylus == null)
-            {
+        internal void SetStylus(Stylus stylus) {
+            if (stylus == null) {
                 Debug.LogWarning("Try set null stylus!");
                 return;
             }
 
-            if (_stylus != null)
-            {
+            if (_stylus != null) {
                 Debug.LogError("Stylus not null!");
                 return;
             }
@@ -68,10 +55,8 @@ namespace Illumetry.Unity.Demo
             _stylus = stylus;
             _stylus.OnUpdatedButtonPhase += OnUpdatedButtonPhase;
 
-            foreach (var visual in _visuals)
-            {
-                if (!IsValidVisualContainer(visual))
-                {
+            foreach (var visual in _visuals) {
+                if (!IsValidVisualContainer(visual)) {
                     continue;
                 }
 
@@ -80,25 +65,19 @@ namespace Illumetry.Unity.Demo
             }
         }
 
-        private void OnUpdatedButtonPhase(Stylus stylus, bool isPressed)
-        {
-            if (_previousPhaseStylusButton != isPressed)
-            {
-                if (isPressed)
-                {
+        private void OnUpdatedButtonPhase(Stylus stylus, bool isPressed) {
+            if (_previousPhaseStylusButton != isPressed) {
+                if (isPressed) {
                     //Button down phase.
                     _startPressButtonTime = Time.time;
                 }
-                else
-                {
+                else {
                     //Click completed.
-                    if (_maxPressTimeForDetectClick > Time.time - _startPressButtonTime)
-                    {
+                    if (_maxPressTimeForDetectClick > Time.time - _startPressButtonTime) {
                         StylusVisualContainer visualContainer = GetCurrentVisualContainer();
                         StylusGrabber stylusGrabber = visualContainer == null ? null : visualContainer.StylusGrabber;
 
-                        if (stylusGrabber == null || !stylusGrabber.enabled || stylusGrabber.DragObject == null)
-                        {
+                        if (stylusGrabber == null || !stylusGrabber.enabled || stylusGrabber.GrabObject == null) {
                             NextVisual();
                         }
                     }
@@ -108,25 +87,20 @@ namespace Illumetry.Unity.Demo
             _previousPhaseStylusButton = isPressed;
         }
 
-        private void NextVisual()
-        {
+        private void NextVisual() {
             _currentVisibleIndex++;
-            if (_currentVisibleIndex >= _visuals.Count)
-            {
+            if (_currentVisibleIndex >= _visuals.Count) {
                 _currentVisibleIndex = 0;
             }
 
             UpdateSelectedVisual();
         }
 
-        private void UpdateSelectedVisual()
-        {
-            for (int i = 0; i < _visuals.Count; i++)
-            {
+        private void UpdateSelectedVisual() {
+            for (int i = 0; i < _visuals.Count; i++) {
                 StylusVisualContainer stylusVisualContainer = _visuals[i];
 
-                if (!IsValidVisualContainer(stylusVisualContainer))
-                {
+                if (!IsValidVisualContainer(stylusVisualContainer)) {
                     continue;
                 }
 
@@ -134,25 +108,19 @@ namespace Illumetry.Unity.Demo
             }
         }
 
-        private void TryFixCurrentVisibleIndex()
-        {
-            if (_currentVisibleIndex >= _visuals.Count)
-            {
+        private void TryFixCurrentVisibleIndex() {
+            if (_currentVisibleIndex >= _visuals.Count) {
                 _currentVisibleIndex = 0;
             }
 
-            if (_currentVisibleIndex < 0)
-            {
+            if (_currentVisibleIndex < 0) {
                 _currentVisibleIndex = _visuals.Count - 1;
             }
         }
 
-        private bool IsValidVisualContainer(StylusVisualContainer visualContainer)
-        {
-            if (visualContainer == null)
-            {
-                if (Application.isEditor || Debug.isDebugBuild)
-                {
+        private bool IsValidVisualContainer(StylusVisualContainer visualContainer) {
+            if (visualContainer == null) {
+                if (Application.isEditor || Debug.isDebugBuild) {
                     Debug.LogError("StylusVisualSetter: visual container, one or more is null!");
                 }
 
@@ -162,12 +130,10 @@ namespace Illumetry.Unity.Demo
             return true;
         }
 
-        private StylusVisualContainer GetCurrentVisualContainer()
-        {
+        private StylusVisualContainer GetCurrentVisualContainer() {
             TryFixCurrentVisibleIndex();
 
-            if (_visuals.Count == 0)
-            {
+            if (_visuals.Count == 0) {
                 return null;
             }
 

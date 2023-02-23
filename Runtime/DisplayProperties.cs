@@ -2,6 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 namespace Illumetry.Unity {
 
@@ -9,6 +10,7 @@ namespace Illumetry.Unity {
     public class DisplayProperties {
         public static readonly string ShaderParameterPrefix = "Illumetry_";
 
+        public string HardwareName;
         public Vector3 ScreenPosition;
         public Vector3 ScreenX;
         public Vector3 ScreenY;
@@ -33,6 +35,8 @@ namespace Illumetry.Unity {
         public DisplayProperties(Antilatency.DeviceNetwork.INetwork network, Antilatency.DeviceNetwork.NodeHandle node) {
             // UnityEngine.Debug.Log("DisplayProperties");
             using (var propertiesReader = new AdnPropertiesReader(network, node)) {
+
+                HardwareName = network.nodeGetStringProperty(node, Antilatency.DeviceNetwork.Interop.Constants.HardwareNameKey);
                 ScreenPosition = propertiesReader.TryRead("sys/ScreenPosition", AdnPropertiesReader.ReadVector3).Value;
                 ScreenX = propertiesReader.TryRead("sys/ScreenX", AdnPropertiesReader.ReadVector3).Value;
                 ScreenY = propertiesReader.TryRead("sys/ScreenY", AdnPropertiesReader.ReadVector3).Value;
@@ -61,14 +65,16 @@ namespace Illumetry.Unity {
                 try {
                     OverdriveFunction = new OverdriveFunction(network.nodeGetBinaryProperty(node, "sys/PixelResponseFunction.b"));
                 } catch (Exception ex) {
-                    Debug.LogWarning(ex);
+                    Debug.LogError(ex);
                 }
                 
+                /*
                 try {
-                    GammaFunction = new GammaFunction(propertiesReader.Read(GammaFunction.PropertyPath, AdnPropertiesReader.ReadFloatArray));
+                    var data = propertiesReader.Read(GammaFunction.PropertyPath, AdnPropertiesReader.ReadFloatArray).ToArray();
+                    GammaFunction = new GammaFunction(data);
                 } catch (Exception ex) {
-                    Debug.LogWarning(ex);
-                }
+                    Debug.LogError(ex);
+                }*/
 
                 ScreenPolarizationAngle = propertiesReader.TryRead("sys/ScreenPolarizationAngle", AdnPropertiesReader.ReadFloat);
             }
@@ -76,6 +82,8 @@ namespace Illumetry.Unity {
 
 
         public static void SetDefaultProperties_IllumetryIo(DisplayProperties properties) {
+
+            properties.HardwareName = string.Empty;
             properties.ScreenPosition.x = 0;
             properties.ScreenPosition.y = 0.15f;
             properties.ScreenPosition.z = 0.003f;

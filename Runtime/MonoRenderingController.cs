@@ -50,6 +50,7 @@ public class MonoRenderingController : MonoBehaviour {
         TryAccessComponent<Illumetry.Unity.DefaultScreenResolution>((c) => { 
             c.Width = ScreenWidth; 
             c.Height = mono ? ScreenHeightMono : ScreenHeightStereo;
+            c.TargetRefreshRate = mono ? 120 : 60;
         });
     }
 

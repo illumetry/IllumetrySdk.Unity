@@ -143,7 +143,7 @@ namespace Illumetry.Unity {
             }
 
 
-            if (placementString == null && _storageClientLibrary != null) {
+            if (placementString == null && _storageClientLibrary != null && !_storageClientLibrary.IsNull()) {
                 try {
                     using (var localStorage = _storageClientLibrary.getLocalStorage()) {
                         placementString = localStorage.read("placement", "default");

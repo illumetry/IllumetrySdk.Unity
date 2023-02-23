@@ -1,11 +1,6 @@
-using System.Collections;
-using System.Collections.Generic;
-using Illumetry;
-using Illumetry.Unity;
 using Illumetry.Unity.Stylus;
 using UnityEngine;
 using UnityEditor;
-using Display = Illumetry.Unity.Display;
 
 namespace Illumetry.Unity.Editor {
     public class IllumetryEditorMenu : MonoBehaviour {
@@ -26,6 +21,13 @@ namespace Illumetry.Unity.Editor {
             display.localPosition = Vector3.zero;
             display.localRotation = Quaternion.identity;
             display.localScale = Vector3.one;
+
+            if (handle != null) {
+                Undo.RegisterCreatedObjectUndo(handle.gameObject, "Create illumetry display");
+            }
+            else {
+                Debug.LogError("Display handle can't be null!");
+            }
         }
 
         static Transform GenerateIllumetryDisplayHandle() {
@@ -33,13 +35,13 @@ namespace Illumetry.Unity.Editor {
 
             displayHandleGO.AddComponent<RequiredSettingsApplyer>();
             displayHandleGO.AddComponent<DisplayHandle>();
-            
+
             return displayHandleGO.transform;
         }
 
         static Transform GenerateIllumetryDisplay() {
             var displayGO = new GameObject("IllumetryDisplay");
-            
+
             displayGO.AddComponent<DeviceNetworkProvider>();
             displayGO.AddComponent<DefaultScreenResolution>();
             displayGO.AddComponent<Glasses>();
@@ -49,8 +51,8 @@ namespace Illumetry.Unity.Editor {
             displayGO.AddComponent<MonoRenderingTracker>();
             displayGO.AddComponent<MonoRenderingController>();
             displayGO.AddComponent<Display>();
-            displayGO.AddComponent<StylusesCreator>();
-            
+            displayGO.AddComponent<StylusesCreator>().ValidateStylusTemplate(false);
+
             return displayGO.transform;
         }
 

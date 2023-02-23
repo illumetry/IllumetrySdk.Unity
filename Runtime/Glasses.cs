@@ -1,7 +1,6 @@
+using System;
 using Antilatency.Alt.Environment;
 using Antilatency.DeviceNetwork;
-using Antilatency.InterfaceContract;
-using System;
 using System.Collections;
 using System.Linq;
 using UnityEngine;
@@ -32,11 +31,11 @@ namespace Illumetry.Unity {
 
         public float PupillaryDistance = 0.06f;
 
-        public Pose? GetEyePose(bool left, float extrapolationTime) {
-            if (TrackingCotask.IsNull()) {
+        public virtual Pose? GetEyePose(bool left, float extrapolationTime) {
+            if (_trackingCotask.IsNull()) {
                 return null;
             }
-            var state = TrackingCotask.getExtrapolatedState(Placement, extrapolationTime);
+            var state = _trackingCotask.getExtrapolatedState(Placement, extrapolationTime);
 
             if (state.stability.stage == Antilatency.Alt.Tracking.Stage.Tracking6Dof || state.stability.stage == Antilatency.Alt.Tracking.Stage.TrackingBlind6Dof) {
                 state.pose.position += (left ? -0.5f : 0.5f) * PupillaryDistance * state.pose.right;
@@ -46,10 +45,10 @@ namespace Illumetry.Unity {
         }
 
         public bool? IsChargerConnected() {
-            if (GlassesCotask.IsNull()) {
+            if (_glassesCotask.IsNull()) {
                 return null;
             }
-            return GlassesCotask.isChargerConnected();
+            return _glassesCotask.isChargerConnected();
         }
 
         /// <summary>
@@ -57,14 +56,15 @@ namespace Illumetry.Unity {
         /// </summary>
         /// <returns></returns>
         public float? GetBatteryLevel() {
-            if (GlassesCotask.IsNull()) {
+            if (_glassesCotask.IsNull()) {
                 return null;
             }
-            return GlassesCotask.getBatteryLevel();
+            return _glassesCotask.getBatteryLevel();
         }
 
-        private Antilatency.Alt.Tracking.ITrackingCotask TrackingCotask { get; set; }
-        private Antilatency.StereoGlasses.ICotask GlassesCotask { get; set; }
+        protected Antilatency.Alt.Tracking.ITrackingCotask _trackingCotask;
+        protected Antilatency.StereoGlasses.ICotask _glassesCotask;
+        
         public Pose Placement { get; private set; }
         public float? GlassesPolarizationAngle { get; private set; }
         public float? QuarterWaveplateAngle { get; private set; }
@@ -80,6 +80,9 @@ namespace Illumetry.Unity {
         protected override void Destroy() {
             base.Destroy();
             
+            Antilatency.Utils.SafeDispose(ref _trackingCotask);
+            Antilatency.Utils.SafeDispose(ref _glassesCotask);
+
             Antilatency.Utils.SafeDispose(ref _glassesCotaskConstructor);
             Antilatency.Utils.SafeDispose(ref _glassesLibrary);
             Antilatency.Utils.SafeDispose(ref _altCotaskConstructor);
@@ -190,19 +193,30 @@ namespace Illumetry.Unity {
             }
 
             {
-                Antilatency.StereoGlasses.ICotask glassesCotask = null;
-
                 try {
-                    glassesCotask = _glassesCotaskConstructor.startTask(network, glassesNode);
-                    GlassesCotask = glassesCotask;
+                    _glassesCotask = _glassesCotaskConstructor.startTask(network, glassesNode);
                 }
                 catch (Antilatency.InterfaceContract.Exception e) {
-                    Antilatency.Utils.SafeDispose(ref glassesCotask);
+                    Antilatency.Utils.SafeDispose(ref _glassesCotask);
                     Debug.LogError(e.Message);
                     goto WaitingForNode;
                 }
 
-                displayCotask.setFrameScheduleReceiver(glassesCotask.getFrameScheduleReceiver());
+                if (_glassesCotask.IsNull()) {
+                    Antilatency.Utils.SafeDispose(ref _glassesCotask);
+                    Debug.LogError("Glasses::StateMachine: failed to start glasses task");
+                    goto WaitingForNode;
+                }
+
+                try {
+                    displayCotask.setFrameScheduleReceiver(_glassesCotask.getFrameScheduleReceiver());
+                }
+                catch (Exception e) {
+                    Debug.LogError("Glasses::StateMachine: exception has been thrown at setFrameScheduleReceiver, what: " + e.Message);
+                    Antilatency.Utils.SafeDispose(ref _glassesCotask);
+                    goto WaitingForNode;
+                }
+                
                 using (var _ = new Disposable(() => {
                         if (!displayCotask.IsNull()) {
                             displayCotask.setFrameScheduleReceiver(null);
@@ -211,29 +225,35 @@ namespace Illumetry.Unity {
                 )) {
                     
                     if (environment.IsNull()) {
-                        Antilatency.Utils.SafeDispose(ref glassesCotask);
+                        Antilatency.Utils.SafeDispose(ref _glassesCotask);
                     
                         yield return status;
                         goto WaitingForEnvironment;
                     }
 
-                    Antilatency.Alt.Tracking.ITrackingCotask trackingCotask = null;
                     try {
-                        trackingCotask = _altCotaskConstructor.startTask(network, altNode, environment);
-                        TrackingCotask = trackingCotask;
+                        _trackingCotask = _altCotaskConstructor.startTask(network, altNode, environment);
                     }
                     catch (Antilatency.InterfaceContract.Exception e) {
-                        Antilatency.Utils.SafeDispose(ref glassesCotask);
-                        Antilatency.Utils.SafeDispose(ref trackingCotask);
+                        Antilatency.Utils.SafeDispose(ref _glassesCotask);
+                        Antilatency.Utils.SafeDispose(ref _trackingCotask);
                     
-                        Debug.LogError(e.Message);
+                        Debug.LogError("Glasses::StateMachine: failed to start tracking task, what: " + e.Message);
                         goto WaitingForNode;
                     }
 
-                    while (!glassesCotask.isTaskFinished() && !trackingCotask.isTaskFinished()) {
+                    if (_trackingCotask.IsNull()) {
+                        Antilatency.Utils.SafeDispose(ref _glassesCotask);
+                        Antilatency.Utils.SafeDispose(ref _trackingCotask);
+                    
+                        Debug.LogError("Glasses::StateMachine: failed to start tracking task");
+                        goto WaitingForNode;
+                    }
+
+                    while (!_glassesCotask.isTaskFinished() && !_trackingCotask.isTaskFinished()) {
                         if (displayCotask.IsNull()) {
-                            Antilatency.Utils.SafeDispose(ref glassesCotask);
-                            Antilatency.Utils.SafeDispose(ref trackingCotask);
+                            Antilatency.Utils.SafeDispose(ref _glassesCotask);
+                            Antilatency.Utils.SafeDispose(ref _trackingCotask);
                         
                             yield return status;
                             goto WaitingForDisplay;
@@ -243,16 +263,16 @@ namespace Illumetry.Unity {
                         if (Destroying) yield break;
                     }
 
-                    if (glassesCotask.isTaskFinished()) {
+                    if (_glassesCotask.isTaskFinished()) {
                         ++GlassesTaskRestartCount;
                     } else {
-                        if (trackingCotask.isTaskFinished()) {
+                        if (_trackingCotask.isTaskFinished()) {
                             ++TrackingTaskRestartCount;
                         }
                     }
 
-                    Antilatency.Utils.SafeDispose(ref glassesCotask);
-                    Antilatency.Utils.SafeDispose(ref trackingCotask);
+                    Antilatency.Utils.SafeDispose(ref _glassesCotask);
+                    Antilatency.Utils.SafeDispose(ref _trackingCotask);
 
                     goto WaitingForNode;
                 }

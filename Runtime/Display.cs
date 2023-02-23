@@ -20,9 +20,13 @@ namespace Illumetry.Unity {
         public Vector3 ScreenX;
         public Vector3 ScreenY;*/
 
+        internal static Display ActiveDisplay => _activeDisplay;
+        internal static event Action OnDisplayChanged;
+        private static Display _activeDisplay;
+
+
         [field: SerializeField]
         public DisplayProperties DisplayProperties { get; private set; }
-
 
         public Vector2 GetHalfScreenSize() {
             return new Vector2(DisplayProperties.ScreenX.magnitude, DisplayProperties.ScreenY.magnitude);
@@ -47,9 +51,20 @@ namespace Illumetry.Unity {
             DisplayProperties.SetDefaultProperties_IllumetryIo(DisplayProperties);
         }
 
-        public IEnvironment Environment { get; private set; }
+        public IEnvironment Environment {
+            get {
+                return _environment;
+            }
+        }
 
-        public Illumetry.Display.ICotask Cotask { get; private set; }
+        public Illumetry.Display.ICotask Cotask {
+            get {
+                return _cotask;
+            }
+        }
+
+        private Illumetry.Display.ICotask _cotask;
+        private IEnvironment _environment;
 
         private Illumetry.Display.ILibrary _displayLibrary;
         private Illumetry.Display.ICotaskConstructor _cotaskConstructor;
@@ -57,10 +72,16 @@ namespace Illumetry.Unity {
 
         protected override void Destroy() {
             base.Destroy();
+
+            Antilatency.Utils.SafeDispose(ref _environment);
+            Antilatency.Utils.SafeDispose(ref _cotask);
             
             Antilatency.Utils.SafeDispose(ref _environmentSelectorLibrary);
             Antilatency.Utils.SafeDispose(ref _cotaskConstructor);
             Antilatency.Utils.SafeDispose(ref _displayLibrary);
+            
+            _activeDisplay = null;
+            OnDisplayChanged?.Invoke();
         }
 
         protected override IEnumerable StateMachine() {
@@ -68,23 +89,38 @@ namespace Illumetry.Unity {
             _displayLibrary = Illumetry.Display.Library.load();
             _cotaskConstructor = _displayLibrary.getCotaskConstructor();
             _environmentSelectorLibrary = Antilatency.Alt.Environment.Selector.Library.load();
-            
+            bool wasMonitor = false;
+
             string status = "";
 
-            WaitingForNetwork:
+        WaitingForNetwork:
             if (Destroying) yield break;
             status = "Waiting for DeviceNetwork";
 
             INetwork network = GetComponent<IDeviceNetworkProvider>()?.Network;
+
+            wasMonitor = _activeDisplay != null;
+            _activeDisplay = null;
+
+            if (wasMonitor) {
+                OnDisplayChanged?.Invoke();
+            }
 
             if (network.IsNull()) {
                 yield return status;
                 goto WaitingForNetwork;
             }
 
-            WaitingForNode:
+        WaitingForNode:
             if (Destroying) yield break;
             status = "Display is not connected (USB)";
+
+            wasMonitor = _activeDisplay != null;
+            _activeDisplay = null;
+
+            if (wasMonitor) {
+                OnDisplayChanged?.Invoke();
+            }
 
             if (network.IsNull()) {
                 goto WaitingForNetwork;
@@ -101,17 +137,25 @@ namespace Illumetry.Unity {
             {
                 DisplayProperties = new DisplayProperties(network, node);
 
-                using (var environment = _environmentSelectorLibrary.createEnvironment(DisplayProperties.CurrentEnvironment)) {
-                    Environment = environment;
-
-                    using (var cotask = _cotaskConstructor.startTask(network, node)) {
-                        Cotask = cotask;
-                        if (cotask == null){
+                using (_environment = _environmentSelectorLibrary.createEnvironment(DisplayProperties.CurrentEnvironment)) {
+                    using (_cotask = _cotaskConstructor.startTask(network, node)) {
+                        if (_cotask == null) {
                             yield return status;
                             goto WaitingForNode;
                         }
 
-                        while (!cotask.isTaskFinished()) {
+                        if (!_cotask.isTaskFinished()) {
+                            if (_activeDisplay != null && _activeDisplay != this) {
+                                if (Application.isEditor || Debug.isDebugBuild) {
+                                    Debug.LogError($"Detected other {DisplayProperties.HardwareName} display! Please connect only 1 display.");
+                                }
+                            }
+
+                            _activeDisplay = this;
+                            OnDisplayChanged?.Invoke();
+                        }
+
+                        while (!_cotask.isTaskFinished()) {
                             yield return null;
                             if (Destroying) yield break;
                         }
@@ -123,7 +167,7 @@ namespace Illumetry.Unity {
 
         public Matrix4x4 GetProjectionMatrix(Vector3 environmentSpaceCameraPosition, float nearClip, float farClip) {
             Vector3 displaySpaceCameraPosition = environmentSpaceCameraPosition - DisplayProperties.ScreenPosition;
-            
+
             return GetProjectionMatrix(DisplayProperties.ScreenX.magnitude, DisplayProperties.ScreenY.magnitude, displaySpaceCameraPosition, nearClip, farClip);
         }
 

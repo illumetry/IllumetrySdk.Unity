@@ -1,119 +1,63 @@
 using UnityEngine;
-using System.Collections;
-using System.Runtime.InteropServices;
 using System;
-using System.Text;
+using System.Collections;
 
-namespace Illumetry.Unity
-{
-    public class DefaultScreenResolution : MonoBehaviour
-    {
-#if !UNITY_WEBGL
+#if UNITY_2021_2_OR_NEWER
+using System.Collections.Generic;
+#endif
+
+namespace Illumetry.Unity {
+    public class DefaultScreenResolution : MonoBehaviour {
+
         public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
-        private static int _firstReceiveWidth;
-        private static int _firstReceiveHeight;
-        private static FullScreenMode _firstReceiveMode;
+        private static int _firstReceivedWidth;
+        private static int _firstReceivedHeight;
+        private static FullScreenMode _firstReceivedMode;
 
-        [DllImport("user32.dll")]
-        private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+#if UNITY_2021_2_OR_NEWER
+        private static DisplayInfo _firstReceivedMainDisplay;
+#endif
+        private static Vector2Int _firstReceivedMainDisplayPosition;
 
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern int GetWindowText(IntPtr hWnd, StringBuilder strText, int maxCount);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern int GetWindowTextLength(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr GetWindowThreadProcessId(IntPtr hWnd, out uint ProcessId);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
-
-        [DllImport("user32.dll")]
-        static extern IntPtr GetForegroundWindow();
-
-        [DllImport("user32.dll")]
-        static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        internal static extern bool ShowWindow(IntPtr hWnd, int nCmdShow); //ShowWindow needs an IntPtr
-
-        [DllImport("user32.dll")]
-        static extern IntPtr GetActiveWindow();
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr FindWindow(string className, string windowName);
-
-        public int Width = 1920;
-        public int Height = 2760;
-
+        [HideInInspector] public int Width = 1920;
+        [HideInInspector] public int Height = 2760;
+        [HideInInspector] public int TargetRefreshRate = 60;
+        public bool AllowReturnToFirstParamsOnDisabled = true;
         private Coroutine _updateResolutionProcess;
 
-        // public bool ForceFocus = false;
-        // private IntPtr _hwnd;
-
-#if !UNITY_EDITOR
-        void Start() {
-            // _hwnd = FindHWnd();
-        }
+#if UNITY_2021_2_OR_NEWER
+        private List<DisplayInfo> _cachedConnectedDisplays = new List<DisplayInfo>();
 #endif
-        public static string GetWindowText(IntPtr hWnd)
-        {
-            int size = GetWindowTextLength(hWnd);
-            if (size > 0)
-            {
-                var builder = new StringBuilder(size + 1);
-                GetWindowText(hWnd, builder, builder.Capacity);
-                return builder.ToString();
-            }
+        private WaitForSecondsRealtime _delayUpdate;
+        private WaitForEndOfFrame _waitEndFrame;
 
-            return String.Empty;
-        }
+        private void Awake() {
+            _delayUpdate = new WaitForSecondsRealtime(1f);
+            _waitEndFrame = new WaitForEndOfFrame();
 
-        private void Awake()
-        {
-            if (_firstReceiveWidth == 0 || _firstReceiveHeight == 0)
-            {
-                _firstReceiveWidth = Screen.width;
-                _firstReceiveHeight = Screen.height;
-                _firstReceiveMode = Screen.fullScreenMode;
+            if (_firstReceivedWidth == 0 || _firstReceivedHeight == 0) {
+                _firstReceivedWidth = Screen.width;
+                _firstReceivedHeight = Screen.height;
+                _firstReceivedMode = Screen.fullScreenMode;
+
+#if UNITY_2021_2_OR_NEWER
+                _firstReceivedMainDisplay = Screen.mainWindowDisplayInfo;
+                _firstReceivedMainDisplayPosition = Screen.mainWindowPosition;
+#endif
             }
         }
-        
-        private void OnEnable()
-        {
+
+        private void OnEnable() {
             StartUpdateResolution();
         }
 
-        private void OnDisable()
-        {
+        private void OnDisable() {
             StopUpdateResolutionProcess();
-            ReturnToStartResolution();
+            ReturnToFirstReceivedParams();
         }
 
-        // private IntPtr FindHWnd() {
-        //     Debug.Log("DefaultScreenResolution::FindHWnd::Start");
-        //     IntPtr result = IntPtr.Zero;
-        //     EnumWindows(delegate (IntPtr wnd, IntPtr param) {
-        //         string wndName = GetWindowText(wnd);
-        //         if (wndName == Application.productName) {
-        //             uint pid;
-        //             GetWindowThreadProcessId(wnd, out pid);
-        //             if (Process.GetCurrentProcess().Id == pid) {
-        //                 Debug.Log("DefaultScreenResolution::FindHWnd::Founded::" + wndName + "::" + wnd + "::Process=" + Process.GetProcessById((int)pid));
-        //                 result = wnd;
-        //                 return false;
-        //             }
-        //         }
-        //         return true;
-        //     }, IntPtr.Zero);
-        //     Debug.Log("DefaultScreenResolution::FindHWnd::End");
-        //     return result;
-        // }
-
-        private void StartUpdateResolution()
-        {
+        private void StartUpdateResolution() {
             StopUpdateResolutionProcess();
 
 #if !UNITY_EDITOR
@@ -121,58 +65,119 @@ namespace Illumetry.Unity
 #endif
         }
 
-        private void StopUpdateResolutionProcess()
-        {
-            if (_updateResolutionProcess != null)
-            {
+        private void StopUpdateResolutionProcess() {
+            if (_updateResolutionProcess != null) {
                 StopCoroutine(_updateResolutionProcess);
                 _updateResolutionProcess = null;
             }
         }
 
-        private void ReturnToStartResolution()
-        {
+        private void ReturnToFirstReceivedParams() {
+
+            if (!AllowReturnToFirstParamsOnDisabled) {
+                return;
+            }
+
 #if !UNITY_EDITOR
-            Screen.SetResolution(_firstReceiveWidth, _firstReceiveHeight, _firstReceiveMode);
+            Screen.SetResolution(_firstReceivedWidth, _firstReceivedHeight, _firstReceivedMode);
+
+#if UNITY_2021_2_OR_NEWER
+            if (HasDisplay(_firstReceivedMainDisplay)) {
+              Screen.MoveMainWindowTo(_firstReceivedMainDisplay, _firstReceivedMainDisplayPosition);
+            }
+#endif
 #endif
         }
 
-        private IEnumerator UpdateResolution()
-        {
-            // Debug.Log("DefaultScreenResolution::StartCoroutine(SetResolution())::"
-            // + Screen.currentResolution.width + "x" + Screen.currentResolution.height + "::FullScreenMode=" + Screen.fullScreenMode);
-            yield return new WaitForEndOfFrame();
-            while (enabled)
-            {
-                // if (ForceFocus && GetForegroundWindow() != _hwnd) {
-                //     SetForegroundWindow(_hwnd);
-                //     yield return new WaitForSecondsRealtime(1.01f);
-                //     ShowWindow(_hwnd, 9);
-                //     yield return new WaitForSecondsRealtime(1.01f);
-                // }
+        private IEnumerator UpdateResolution() {
 
-                if (Application.isFocused)
-                {
+            while (enabled) {
+                if (Application.isFocused) {
+
+#if UNITY_2021_2_OR_NEWER
+                    Screen.GetDisplayLayout(_cachedConnectedDisplays);
+                    DisplayInfo? illumetryDisplay = FindIllumetryDisplay();
+
+                    if (IsAllowMoveAppToDisplay(illumetryDisplay)) {
+                        AsyncOperation asyncOperation = Screen.MoveMainWindowTo(illumetryDisplay.Value, Vector2Int.zero);
+                        while(!asyncOperation.isDone) yield return null;
+                    }
+#endif
+
                     if (Screen.currentResolution.height != Height || Screen.currentResolution.width != Width ||
-                        Screen.fullScreenMode != FullScreenMode.ExclusiveFullScreen)
-                    {
-                        // Debug.Log("DefaultScreenResolution::Resolution will be changed from " + Screen.currentResolution.width + "x" +
-                        // Screen.currentResolution.height + " to " + Width + "x" + Height);
-                        if (Screen.fullScreenMode != FullScreenMode.ExclusiveFullScreen)
-                        {
-                            // Debug.Log("DefaultScreenResolution::Try set ExclusiveFullScreen::Current=" + Screen.fullScreenMode);
+                        Screen.fullScreenMode != FullScreenMode.ExclusiveFullScreen) {
+
+                        if (Screen.fullScreenMode != FullScreenMode.ExclusiveFullScreen) {
                             Screen.fullScreenMode = FullScreenMode.ExclusiveFullScreen;
                         }
 
-                        yield return new WaitForEndOfFrame();
-                        // Debug.Log("DefaultScreenResolution::Change resolution from " + Screen.currentResolution.width + "x" +
-                        // Screen.currentResolution.height + " to " + Width + "x" + Height);
-                        Screen.SetResolution(Width, Height, FullScreenMode.ExclusiveFullScreen);
+                        yield return _waitEndFrame;
+                        Screen.SetResolution(Width, Height, FullScreenMode.ExclusiveFullScreen, TargetRefreshRate);
                     }
                 }
-
-                yield return new WaitForSecondsRealtime(1.01f);
+                yield return _delayUpdate;
             }
+        }
+
+#if UNITY_2021_2_OR_NEWER
+        private DisplayInfo? FindIllumetryDisplay() {
+
+            Display displayComponent = Display.ActiveDisplay;
+
+            if (displayComponent == null || displayComponent.DisplayProperties == null) {
+                return null;
+            }
+
+            foreach (var display in _cachedConnectedDisplays) {
+                if (display.name.Equals(displayComponent.DisplayProperties.HardwareName)) {
+                    return display;
+                }
+            }
+
+            return null;
+        }
+
+        private bool CurrentDisplayIsIllumetry(DisplayInfo? illumetryDisplay) {
+
+            Display displayComponent = Display.ActiveDisplay;
+
+            if (displayComponent == null) {
+                return false;
+            }
+
+            if (displayComponent.DisplayProperties == null) {
+                return false;
+            }
+
+            if (illumetryDisplay.HasValue) {
+                return illumetryDisplay.Value.name.Equals(Screen.mainWindowDisplayInfo.name);
+            }
+
+            return false;
+        }
+
+        private bool IsAllowMoveAppToDisplay(DisplayInfo? illumetryDisplay) {
+
+            if (!illumetryDisplay.HasValue) {
+                return false;
+            }
+
+            if (CurrentDisplayIsIllumetry(illumetryDisplay)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool HasDisplay(DisplayInfo display) {
+
+            foreach(var d in _cachedConnectedDisplays) {
+                if (d.name.Equals(display.name)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 #endif
     }

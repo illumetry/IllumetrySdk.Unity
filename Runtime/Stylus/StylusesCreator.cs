@@ -45,17 +45,24 @@ namespace Illumetry.Unity.Stylus {
                 stylusGoTemplate = null;
             }
 
-            if (stylusGoTemplate == null)
-            {
-                Debug.LogWarning("Stylus template can not be null!");
+            ValidateStylusTemplate(true);
+        }
+
+        public void ValidateStylusTemplate(bool showWarning = true) {
+            if (stylusGoTemplate == null) {
+
+                if (showWarning) {
+                    Debug.LogWarning("Stylus template can not be null!");
+                }
+
                 stylusGoTemplate = AssetDatabase.LoadAssetAtPath<GameObject>("Packages/com.illumetry.sdk/Source/StylusTemplate.prefab");
 
-                if (stylusGoTemplate.GetComponent<Stylus>() == null)
-                {
+                if (stylusGoTemplate.GetComponent<Stylus>() == null) {
                     Debug.LogError("Default stylus template don't contain Stylus.cs.");
                 }
             }
         }
+
 #endif
 
         protected override void Create() {
@@ -115,7 +122,7 @@ namespace Illumetry.Unity.Stylus {
                 goto WaitForNetworks;
             }
 
-            status = "Finding styluses";
+            status = "";
             
             WaitForFindStyluses:
             if(Destroying) { yield break;}
@@ -137,7 +144,7 @@ namespace Illumetry.Unity.Stylus {
                     extensionSupportedNodes = _hardwareExtensionCotaskConstructor.findSupportedNodes(network);
                     allAltTrackingNodes = _altCotaskConstructor.findSupportedNodes(network);
 
-                    //Finding build by antilatency stylus.
+                    //Finding builded by antilatency stylus.
                     extensionNode = extensionSupportedNodes.FirstOrDefault(n =>
                         network.nodeGetStringProperty(n, Antilatency.DeviceNetwork.Interop.Constants.HardwareNameKey).Contains(_hardwareStylusName) &&
                         network.nodeGetStatus(n) == NodeStatus.Idle);
@@ -150,7 +157,10 @@ namespace Illumetry.Unity.Stylus {
                                     network.nodeGetStringProperty(n, "Tag").Equals(customStylusTag) &&
                                     network.nodeGetStatus(n) == NodeStatus.Idle);
                             } else {
-                                Debug.LogError("Stylus tag == string.Empty.Fix the list of tags for the styluses.");
+
+                                if (Application.isEditor || Debug.isDebugBuild) {
+                                    Debug.LogError("Stylus tag == string.Empty. Fix the list of tags for the styluses.");
+                                }
                             }
                         }
                     }
@@ -181,7 +191,11 @@ namespace Illumetry.Unity.Stylus {
                     extensionsCotask.run();
                 }
                 catch (Exception e) {
-                    Debug.LogError($"Stylus start extension task failed. {e.Message} \n {e.StackTrace}");
+
+                    if (Application.isEditor || Debug.isDebugBuild) {
+                        Debug.LogError($"Stylus start extension task failed. {e.Message} \n {e.StackTrace}");
+                    }
+
                     Antilatency.Utils.SafeDispose(ref inputPin);
                     Antilatency.Utils.SafeDispose(ref extensionsCotask);
                     isCaught = true;
@@ -200,7 +214,11 @@ namespace Illumetry.Unity.Stylus {
                     }
                 }
                 catch (Exception e) {
-                    Debug.LogError($"Stylus start tracking task failed. {e.Message} \n {e.StackTrace}");
+
+                    if (Application.isEditor || Debug.isDebugBuild) {
+                        Debug.LogError($"Stylus start tracking task failed. {e.Message} \n {e.StackTrace}");
+                    }
+
                     Antilatency.Utils.SafeDispose(ref inputPin);
                     Antilatency.Utils.SafeDispose(ref trackingCotask);
                     Antilatency.Utils.SafeDispose(ref extensionsCotask);
@@ -224,9 +242,8 @@ namespace Illumetry.Unity.Stylus {
                 _createdStyluses[idStylus] = stylus;
                 UpdateCachedStyluses();
 
-                Debug.Log($"StylusCreator: Stylus created successfully -> {idStylus}");
-
                 if (Application.isEditor || Debug.isDebugBuild) {
+                    Debug.Log($"StylusCreator: Stylus created successfully -> {idStylus}");
                     Debug.Log($"Device network update id: {_lastCheckedUpdateId}");
                 }
             }

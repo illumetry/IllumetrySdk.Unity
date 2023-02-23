@@ -1,9 +1,7 @@
 using System;
 
-namespace Illumetry.Unity.Demo
-{
-    public interface IStylusGrabbable
-    {
+namespace Illumetry.Unity.Demo {
+    public interface IStylusGrabbable {
         event Action<IStylusGrabbable> OnDestroing;
         int InstanceId { get; }
         void OnStartGrab(StylusGrabber stylusGrabber);

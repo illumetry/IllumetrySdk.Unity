@@ -1,14 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Illumetry.Unity.Demo
-{
+namespace Illumetry.Unity.Demo {
+
     using Illumetry.Unity.Stylus;
-    public class StylusGrabber : MonoBehaviour
-    {
+
+    public class StylusGrabber : MonoBehaviour {
         public Stylus Stylus => _stylus;
         public Rigidbody PhysicComponent => physicComponent;
-        public IStylusGrabbable DragObject => _dragObject;
+        public IStylusGrabbable GrabObject => _grabObject;
 
 
         [SerializeField] private Stylus _stylus;
@@ -17,57 +17,46 @@ namespace Illumetry.Unity.Demo
         [SerializeField] private Vector3 _triggerOffset;
         [SerializeField, Header("If no, will using BoxCast")] private bool _useOverlapBox;
 
-        private Dictionary<int, IStylusGrabbable> _dragableObjects = new Dictionary<int, IStylusGrabbable>();
+        private Dictionary<int, IStylusGrabbable> _grabbableObjects = new Dictionary<int, IStylusGrabbable>();
         private List<Collider> _enteredColliders;
-        private IStylusGrabbable _dragObject;
+        private IStylusGrabbable _grabObject;
         private bool _lastStylusButtonPhaseState;
 
-        private void OnEnable()
-        {
+        private void OnEnable() {
             ResetGrabber();
             SubscribeStylusEvents();
         }
 
-        private void OnDisable()
-        {
+        private void OnDisable() {
             ResetGrabber();
         }
 
-        private void OnDestroy()
-        {
+        private void OnDestroy() {
             ResetGrabber();
         }
 
-        private void SubscribeStylusEvents()
-        {
-            if (_stylus != null)
-            {
+        private void SubscribeStylusEvents() {
+            if (_stylus != null) {
                 _stylus.OnUpdatedButtonPhase += OnUpdatedStylusButtonPhase;
                 _stylus.OnUpdatedPose += OnUpdatedPose;
             }
-            else
-            {
+            else {
                 Debug.LogError("Stylus is null! Need stylus! Use method SetStylus(); or set to public field.");
             }
         }
 
-        private void UnSubscribeStylusEvents()
-        {
-            if (_stylus != null)
-            {
+        private void UnSubscribeStylusEvents() {
+            if (_stylus != null) {
                 _stylus.OnUpdatedButtonPhase -= OnUpdatedStylusButtonPhase;
                 _stylus.OnUpdatedPose -= OnUpdatedPose;
             }
-            else
-            {
+            else {
                 Debug.LogError("Stylus is null! Need stylus! Use method SetStylus(); or set to public field.");
             }
         }
 
-        internal void SetStylus(Stylus stylus)
-        {
-            if (_stylus != null)
-            {
+        internal void SetStylus(Stylus stylus) {
+            if (_stylus != null) {
                 ResetGrabber();
             }
 
@@ -75,13 +64,11 @@ namespace Illumetry.Unity.Demo
             SubscribeStylusEvents();
         }
 
-        private void FixedUpdate()
-        {
+        private void FixedUpdate() {
             UpdateColliders(_useOverlapBox);
         }
 
-        private void UpdateColliders(bool useOverlapBox)
-        {
+        private void UpdateColliders(bool useOverlapBox) {
             Vector3 posTrigger = transform.position;
             Vector3 triggerSize = _triggerSize;
             triggerSize.Scale(transform.lossyScale);
@@ -93,63 +80,53 @@ namespace Illumetry.Unity.Demo
             noFoundColliders.AddRange(_enteredColliders);
             _enteredColliders.Clear();
 
-            for (int i = currentColliders.Length - 1; i >= 0; i--)
-            {
+            for (int i = currentColliders.Length - 1; i >= 0; i--) {
                 Collider tryCollider = currentColliders[i];
-                Collider currentCollider = tryCollider == null ? hits[i].collider : tryCollider;
+                Collider currentCollider = tryCollider == null ? hits[i].collider : tryCollider; //For case if using BoxCast. This implementation allows you not to fill the array of colliders and avoids an unnecessary pass through the array.
 
                 bool isFound = false;
 
-                for (int j = noFoundColliders.Count - 1; j >= 0; j--)
-                {
+                for (int j = noFoundColliders.Count - 1; j >= 0; j--) {
                     Collider pCollider = noFoundColliders[j];
 
-                    if (pCollider == currentCollider)
-                    {
+                    if (pCollider == currentCollider) {
                         isFound = true;
                         noFoundColliders.RemoveAt(j);
                         break;
                     }
                 }
 
-                if (!isFound)
-                {
+                if (!isFound) {
                     _enteredColliders.Add(currentCollider);
                     ColliderWasEnter(currentCollider);
                 }
-                else
-                {
+                else {
                     _enteredColliders.Add(currentCollider);
                     ColliderStay(currentCollider);
                 }
             }
 
 
-            for (int i = noFoundColliders.Count - 1; i >= 0; i--)
-            {
+            for (int i = noFoundColliders.Count - 1; i >= 0; i--) {
                 Collider col = noFoundColliders[i];
                 ColliderWasExit(col);
             }
         }
 
-        private void ColliderWasEnter(Collider col)
-        {
+        private void ColliderWasEnter(Collider col) {
             AddOrUpdateGrabbableObject(col);
         }
 
-        private void ColliderStay(Collider col)
-        {
+        private void ColliderStay(Collider col) {
             AddOrUpdateGrabbableObject(col);
         }
 
-        private void ColliderWasExit(Collider col)
-        {
+        private void ColliderWasExit(Collider col) {
             RemoveGrabbableObject(col);
         }
 
 #if UNITY_EDITOR
-        private void OnDrawGizmosSelected()
-        {
+        private void OnDrawGizmosSelected() {
             Matrix4x4 prevMatrix = Gizmos.matrix;
             Gizmos.matrix = transform.localToWorldMatrix;
             Gizmos.color = Color.red;
@@ -159,112 +136,91 @@ namespace Illumetry.Unity.Demo
         }
 #endif
 
-        private void AddOrUpdateGrabbableObject(Collider col)
-        {
-            IStylusGrabbable stylusDragable = col.GetComponent<IStylusGrabbable>();
+        private void AddOrUpdateGrabbableObject(Collider col) {
+            IStylusGrabbable grabbableObject = col.GetComponent<IStylusGrabbable>();
 
-            if (stylusDragable != null)
-            {
-                if (!_dragableObjects.ContainsKey(stylusDragable.InstanceId))
-                {
-                    stylusDragable.OnDestroing += OnDestroingGrabbableObject;
+            if (grabbableObject != null) {
+                if (!_grabbableObjects.ContainsKey(grabbableObject.InstanceId)) {
+                    grabbableObject.OnDestroing += OnDestroingGrabbableObject;
                 }
 
                 //Debug.Log($"Was entered to col -> {col.name}");
-                _dragableObjects[stylusDragable.InstanceId] = stylusDragable;
+                _grabbableObjects[grabbableObject.InstanceId] = grabbableObject;
             }
         }
 
-        private void OnDestroingGrabbableObject(IStylusGrabbable stylusDragable)
-        {
-            RemoveGrabbableObject(stylusDragable);
+        private void OnDestroingGrabbableObject(IStylusGrabbable grabbableObject) {
+            RemoveGrabbableObject(grabbableObject);
         }
 
-        private void RemoveGrabbableObject(Collider col)
-        {
-            IStylusGrabbable stylusDragable = col.GetComponent<IStylusGrabbable>();
-            RemoveGrabbableObject(stylusDragable);
+        private void RemoveGrabbableObject(Collider col) {
+            IStylusGrabbable grabbableObject = col.GetComponent<IStylusGrabbable>();
+            RemoveGrabbableObject(grabbableObject);
             //Debug.Log($"Remove col -> {col.name}");
         }
 
-        private void RemoveGrabbableObject(IStylusGrabbable stylusDragable)
-        {
-            if (stylusDragable != null)
-            {
-                stylusDragable.OnDestroing -= OnDestroingGrabbableObject;
-                _dragableObjects.Remove(stylusDragable.InstanceId);
+        private void RemoveGrabbableObject(IStylusGrabbable grabbableObject) {
+            if (grabbableObject != null) {
+                grabbableObject.OnDestroing -= OnDestroingGrabbableObject;
+                _grabbableObjects.Remove(grabbableObject.InstanceId);
             }
         }
 
-        private void OnUpdatedStylusButtonPhase(Stylus stylus, bool isPressed)
-        {
-            if (_lastStylusButtonPhaseState != isPressed)
-            {
-                if (isPressed)
-                {
+        private void OnUpdatedStylusButtonPhase(Stylus stylus, bool isPressed) {
+            if (_lastStylusButtonPhaseState != isPressed) {
+                if (isPressed) {
                     //Button is down.
-                    _dragObject = null;
-                    foreach (var kVp in _dragableObjects)
-                    {
-                        if (kVp.Value == null)
-                        {
-                            Debug.LogError("Drag object in _dragableObjects is null!");
+                    _grabObject = null;
+                    foreach (var kVp in _grabbableObjects) {
+                        if (kVp.Value == null) {
+                            Debug.LogError("Grab object in _grabbableObjects is null!");
                             continue;
                         }
 
-                        _dragObject = kVp.Value;
+                        _grabObject = kVp.Value;
                         break;
                     }
 
-                    if (_dragObject != null)
-                    {
-                        _dragObject.OnStartGrab(this);
+                    if (_grabObject != null) {
+                        _grabObject.OnStartGrab(this);
                     }
                 }
-                else
-                {
+                else {
                     //Click completed.
-                    EndDragObject();
+                    EndGrabObject();
                 }
             }
 
             _lastStylusButtonPhaseState = isPressed;
         }
 
-        private void OnUpdatedPose(Pose stylusPose, Vector3 worldVelocity, Vector3 angularVelocity)
-        {
-            if (_dragObject != null)
-            {
-                _dragObject.OnGrabProcess(this);
+        private void OnUpdatedPose(Pose stylusPose, Vector3 worldVelocity, Vector3 angularVelocity) {
+            if (_grabObject != null) {
+                _grabObject.OnGrabProcess(this);
             }
         }
 
-        private void EndDragObject()
-        {
-            if (_dragObject != null)
-            {
-                _dragObject.OnEndGrab(this);
-                _dragObject = null;
+        private void EndGrabObject() {
+            if (_grabObject != null) {
+                _grabObject.OnEndGrab(this);
+                _grabObject = null;
             }
         }
 
-        private void ResetGrabber()
-        {
+        private void ResetGrabber() {
             UnSubscribeStylusEvents();
-            EndDragObject();
+            EndGrabObject();
             _lastStylusButtonPhaseState = false;
 
-            if (_dragableObjects == null)
-            {
-                _dragableObjects = new Dictionary<int, IStylusGrabbable>();
+            if (_grabbableObjects == null) {
+                _grabbableObjects = new Dictionary<int, IStylusGrabbable>();
             }
 
-            if (_enteredColliders == null)
-            {
+            if (_enteredColliders == null) {
                 _enteredColliders = new List<Collider>();
             }
 
-            _dragableObjects.Clear();
+            _grabbableObjects.Clear();
             _enteredColliders.Clear();
         }
     }

@@ -1,23 +1,18 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Illumetry.Unity.Demo
-{
+namespace Illumetry.Unity.Demo {
     using Illumetry.Unity.Stylus;
 
-    public class StylusVisualPackInstaller : MonoBehaviour
-    {
+    public class StylusVisualPackInstaller : MonoBehaviour {
         [SerializeField] private StylusVisualSetter visualPack;
         private List<GameObject> _createdPacks = new List<GameObject>();
 
-        private void OnEnable()
-        {
+        private void OnEnable() {
             Stylus[] styluses = StylusesCreator.Styluses;
 
-            foreach (var stylus in styluses)
-            {
-                if (stylus != null)
-                {
+            foreach (var stylus in styluses) {
+                if (stylus != null) {
                     AddVisualPackStylus(stylus);
                 }
             }
@@ -25,19 +20,16 @@ namespace Illumetry.Unity.Demo
             StylusesCreator.OnCreatedStylus += AddVisualPackStylus;
         }
 
-        private void OnDisable()
-        {
+        private void OnDisable() {
             StylusesCreator.OnCreatedStylus -= AddVisualPackStylus;
             RemoveAllCreatedPacks();
         }
 
-        private void OnDestroy()
-        {
+        private void OnDestroy() {
             RemoveAllCreatedPacks();
         }
 
-        private void AddVisualPackStylus(Stylus stylus)
-        {
+        private void AddVisualPackStylus(Stylus stylus) {
             CheckNullAndRemovePacks();
             GameObject instanceVisualPack = Instantiate(visualPack.gameObject);
             instanceVisualPack.transform.parent = stylus.transform;
@@ -51,23 +43,17 @@ namespace Illumetry.Unity.Demo
             _createdPacks.Add(instanceVisualPack);
         }
 
-        private void CheckNullAndRemovePacks()
-        {
-            for (int i = _createdPacks.Count - 1; i >= 0; i--)
-            {
-                if (_createdPacks[i] == null)
-                {
+        private void CheckNullAndRemovePacks() {
+            for (int i = _createdPacks.Count - 1; i >= 0; i--) {
+                if (_createdPacks[i] == null) {
                     _createdPacks.RemoveAt(i);
                 }
             }
         }
 
-        private void RemoveAllCreatedPacks()
-        {
-            foreach (var createdPack in _createdPacks)
-            {
-                if (createdPack != null)
-                {
+        private void RemoveAllCreatedPacks() {
+            foreach (var createdPack in _createdPacks) {
+                if (createdPack != null) {
                     Destroy(createdPack);
                 }
             }

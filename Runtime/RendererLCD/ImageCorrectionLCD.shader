@@ -2,7 +2,7 @@ Shader "Hidden/Illumetry/ImageCorrectionLCD" {
     Properties {
         CurrentFrame ("CurrentFrame", 2D) = "white" {}
         PreviousOverdriveFrame ("PreviousOverdriveFrame", 2D) = "white" {}
-        UseGammaCorrection("UseLimitsCorrection", Int) = 0
+        UseLimitsCorrection("UseLimitsCorrection", Int) = 0
         UseGammaCorrection("UseGammaCorrection", Int) = 0
         UseOverdriveCorrection("UseOverdriveCorrection", Int) = 0
         //Unit: half of vertical size of the screen
@@ -19,6 +19,7 @@ Shader "Hidden/Illumetry/ImageCorrectionLCD" {
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
+            // #pragma enable_d3d11_debug_symbols
 
             #include "UnityCG.cginc"
 
@@ -102,7 +103,7 @@ Shader "Hidden/Illumetry/ImageCorrectionLCD" {
 
             sampler3D Illumetry_OverdriveMapR, Illumetry_OverdriveMapG, Illumetry_OverdriveMapB;
 
-            float3 OveverdriveRGB(float3 Current, float3 PreviousOverdrive, float screenY) {         
+            float3 OverdriveRGB(float3 Current, float3 PreviousOverdrive, float screenY) {
                 return float3(
                     tex3D(Illumetry_OverdriveMapR, float3(PreviousOverdrive.x, Current.x, screenY)).x,
                     tex3D(Illumetry_OverdriveMapG, float3(PreviousOverdrive.y, Current.y, screenY)).x,
@@ -151,14 +152,14 @@ Shader "Hidden/Illumetry/ImageCorrectionLCD" {
                         //}
                         //return fixed4(pow(0.5, gammaCorrection) * (limits.y - limits.x) + limits.x, 1); // test gamma correction
                         if (UseOverdriveCorrection == 1) {
-                            output = OveverdriveRGB(gammaCorrectedColor.xyz, previousOverdriveFrameColor.xyz, uv.y);
+                            output = OverdriveRGB(gammaCorrectedColor.xyz, previousOverdriveFrameColor.xyz, uv.y);
                         }
                         else {
                             output = gammaCorrectedColor.xyz;
                         }
                     } else {
                         if (UseOverdriveCorrection == 1) {
-                            output = OveverdriveRGB(limitsCorrectedColor.xyz, previousOverdriveFrameColor.xyz, uv.y);
+                            output = OverdriveRGB(limitsCorrectedColor.xyz, previousOverdriveFrameColor.xyz, uv.y);
                         }
                         else {
                             output = limitsCorrectedColor.xyz;
@@ -167,13 +168,13 @@ Shader "Hidden/Illumetry/ImageCorrectionLCD" {
                 }
                 else {
                     if (UseOverdriveCorrection == 1) {
-                        output = OveverdriveRGB(currentFrameColor.xyz, previousOverdriveFrameColor.xyz, uv.y);
+                        output = OverdriveRGB(currentFrameColor.xyz, previousOverdriveFrameColor.xyz, uv.y);
                     }
                     else {
                         output = currentFrameColor;
                     }
                 }
-                return float4(output.x, output.y, output.z, 1);
+                return float4(output, 1);
             }
             ENDCG
         }

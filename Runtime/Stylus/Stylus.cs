@@ -15,49 +15,54 @@ namespace Illumetry.Unity.Stylus
         /// </summary>
         public event Action<Stylus,bool> OnUpdatedButtonPhase;
         /// <summary>
-        /// Pose - Extrapolated world pose.
-        /// Vector3 - Extrapolated world velocity.
-        /// Vector3 - Extrapolated world angular velocity.
+        /// Pose - Extrapolated world space pose.
+        /// Vector3 - Extrapolated world space velocity.
+        /// Vector3 - Extrapolated world space angular velocity.
         /// </summary>
-        public event Action<UnityEngine.Pose, Vector3,Vector3> OnUpdatedPose;
+        public event Action<Pose, Vector3,Vector3> OnUpdatedPose;
         public event Action<Stylus> OnDestroying;
         public int Id => _id;
-        public UnityEngine.Pose ExtrapolatedPose => _extrapolatedPose;
+        public Pose ExtrapolatedPose => _extrapolatedPose;
         public Vector3 ExtrapolatedVelocity => _extrapolatedVelocity;
         public Vector3 ExtrapolatedAngularVelocity => _extrapolatedAngularVelocity;
        
-        [Header("Default: 0.042f")]
-        public float extrapolatedTimeDx11 = 0.042f;
+       /* [Header("Default: 0.042f")]
+        public float ExtrapolationTimeDx11 = 0.042f;
         [Header("Default: 0.0305f")]
-        public float extrapolatedTimeDx12 = 0.0305f;
-
-        private ITrackingCotask _trackingCotask;
-        private Antilatency.HardwareExtensionInterface.ICotask _extensionCotask;
-        private IInputPin _inputPin;
+        public float ExtrapolationTimeDx12 = 0.0305f;
+       */
+        protected ITrackingCotask _trackingCotask;
+        protected ICotask _extensionCotask;
+        protected IInputPin _inputPin;
         private int _id;
-        private UnityEngine.Pose _extrapolatedPose;
+        private Pose _extrapolatedPose;
         private Vector3 _extrapolatedVelocity;
         private Vector3 _extrapolatedAngularVelocity;
 
-        public float extrapolateTime
+        /// <summary>
+        /// By GraphicDeviceType (Dx11 or Dx12).
+        /// </summary>
+        public float ExtrapolationTime
         {
             get
             {
                 if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D12)
                 {
-                    return extrapolatedTimeDx12;
+                    //return ExtrapolationTimeDx12;
+                    return 0.0305f;
                 }
 
                 if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Direct3D11)
                 {
-                    return extrapolatedTimeDx11;
+                    //return ExtrapolationTimeDx11;
+                    return 0.042f;
                 }
 
                 return 0.04f;
             }
         }
 
-        internal void Initialize(int id,ITrackingCotask trackingCotask, Antilatency.HardwareExtensionInterface.ICotask extensionsCotask,
+        internal void Initialize(int id,ITrackingCotask trackingCotask, ICotask extensionsCotask,
             IInputPin inputPin)
         {
             _id = id;
@@ -103,18 +108,18 @@ namespace Illumetry.Unity.Stylus
         
         private void OnBeforeRendererLeft()
         {
-            UpdateStylusPose(extrapolateTime);
+            UpdateStylusPose(ExtrapolationTime);
         }
 
         private void OnBeforeRendererRight()
         { 
-            UpdateStylusPose(extrapolateTime);
+            UpdateStylusPose(ExtrapolationTime);
         }
 
         private void OnBeforeRendererMono()
         {
             //For mono mode.   
-            UpdateStylusPose(extrapolateTime);
+            UpdateStylusPose(ExtrapolationTime);
         }
 
         private void UpdateStylusPose(float time)
@@ -134,17 +139,17 @@ namespace Illumetry.Unity.Stylus
                 return;
             }
 
-            Antilatency.Alt.Tracking.State extrapolatedState = _trackingCotask.getExtrapolatedState(Pose.identity, time);
-            UnityEngine.Pose extrapolatedPose = extrapolatedState.pose;
+            State extrapolatedState = _trackingCotask.getExtrapolatedState(Pose.identity, time);
+            Pose extrapolatedPose = extrapolatedState.pose;
 
             transform.localPosition = extrapolatedPose.position;
             transform.localRotation = extrapolatedPose.rotation;
 
             Transform displayHandleT = DisplayHandle.Instance.transform;
-            Vector3 worldVelocity = displayHandleT.TransformDirection(extrapolatedState.velocity);
+            Vector3 worldVelocity = displayHandleT.TransformVector(extrapolatedState.velocity);
             Vector3 angularVelocity = displayHandleT.TransformDirection(extrapolatedState.localAngularVelocity);
 
-            UnityEngine.Pose worldPose = new UnityEngine.Pose(transform.position, transform.rotation);
+            Pose worldPose = new Pose(transform.position, transform.rotation);
 
             _extrapolatedPose = worldPose;
             _extrapolatedVelocity = worldVelocity;

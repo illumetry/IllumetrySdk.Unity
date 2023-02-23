@@ -4,14 +4,15 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using Debug = UnityEngine.Debug;
+using System.Threading;
+using System.Collections.Generic;
+using System.Text;
 
-namespace Illumetry.Unity
-{
+namespace Illumetry.Unity {
     public abstract class BaseRenderer : LifeTimeControllerStateMachine { }
 
     [RequireComponent(typeof(WaveplateColorCorrection))]
-    public class RendererLCD : LifeTimeControllerStateMachine
-    {
+    public class RendererLCD : LifeTimeControllerStateMachine {
         public static event Action OnBeforeRendererL;
         public static event Action OnBeforeRendererR;
 
@@ -19,7 +20,7 @@ namespace Illumetry.Unity
         /// Select R16G16B16A16_SFloat or R32G32B32A32_SFloat format in Inspector if HDR rendering is required
         /// </summary>
         [Tooltip("Select R16G16B16A16_SFloat or R32G32B32A32_SFloat format if HDR rendering is required")]
-        public UnityEngine.Experimental.Rendering.GraphicsFormat RenderTargetFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_UNorm;
+        public UnityEngine.Experimental.Rendering.GraphicsFormat RenderTargetFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat;
 
         [Range(0.3f, 3)] public float CommonGamma = 1.0f;
 
@@ -29,6 +30,9 @@ namespace Illumetry.Unity
         public Shader _imageCorrectionShader;
         public Shader _copyShader;
 
+        public bool UseOverdriveCorrection { get; private set; } = true;
+        public bool UseWaveplateCorrection => _useWaveplateCorrection;
+
         private Material _copyMaterial;
         private Material _imageCorrectionMaterial;
 
@@ -36,7 +40,6 @@ namespace Illumetry.Unity
 
         private bool _useGammaCorrection = false;
         private bool _useLimitsCorrection = false;
-        private bool _useOverdriveCorrection = true;
         private bool _useWaveplateCorrection = true;
         private float _brightness;
         private int _frameN = 0;
@@ -47,89 +50,73 @@ namespace Illumetry.Unity
         private RenderTexture GetCurrentOverdriveRenderTexture(bool left) => _renderTextures[left ? 0 : 1];
         private RenderTexture GetPreviousOverdriveRenderTexture(bool left) => _renderTextures[left ? 1 : 0];
 
-        protected virtual void OnValidate()
-        {
+        protected virtual void OnValidate() {
             ValidateShaderFields(false);
         }
 
-        protected virtual void Reset()
-        {
+        protected virtual void Reset() {
             ValidateShaderFields(true);
         }
 
-        protected override void Create()
-        {
+        protected override void Create() {
             base.Create();
             ValidateShaderFields(false);
         }
 
-        protected virtual void ValidateShaderFields(bool forceReturnDefault)
-        {
+        protected virtual void ValidateShaderFields(bool forceReturnDefault) {
             Shader[] shaders = null;
 
-            if (_imageCorrectionShader == null || forceReturnDefault)
-            {
+            if (_imageCorrectionShader == null || forceReturnDefault) {
                 shaders = Resources.FindObjectsOfTypeAll<Shader>();
                 _imageCorrectionShader = shaders.FirstOrDefault((m) => m.name == "Hidden/Illumetry/ImageCorrectionLCD");
 
-                if (Application.isEditor || Debug.isDebugBuild)
-                {
+                if (Application.isEditor || Debug.isDebugBuild) {
                     Debug.Log("Auto load _imageCorrectionShader!");
                 }
             }
 
-            if (_copyShader == null || forceReturnDefault)
-            {
-                if(shaders == null)
-                {
+            if (_copyShader == null || forceReturnDefault) {
+                if (shaders == null) {
                     shaders = Resources.FindObjectsOfTypeAll<Shader>();
                 }
 
                 _copyShader = shaders.FirstOrDefault((m) => m.name == "Hidden/Illumetry/CopyShader");
 
-                if (Application.isEditor || Debug.isDebugBuild)
-                {
+                if (Application.isEditor || Debug.isDebugBuild) {
                     Debug.Log("Auto load _copyShader!");
                 }
             }
         }
 
-        private void SetCameraPosition(Camera camera, bool left)
-        {
+        private void SetCameraPosition(Camera camera, bool left) {
             camera.transform.localRotation = Quaternion.identity;
 
             var glasses = GetComponent<IGlasses>();
             var display = GetComponent<IDisplay>();
             var waveplateCorrection = GetComponent<WaveplateColorCorrection>();
 
-            if (glasses != null && display != null)
-            {
-                if (display.DisplayProperties.ScreenPolarizationAngle != null && glasses.GlassesPolarizationAngle != null && glasses.QuarterWaveplateAngle != null)
-                {
+            if (glasses != null && display != null) {
+                if (display.DisplayProperties.ScreenPolarizationAngle != null && glasses.GlassesPolarizationAngle != null && glasses.QuarterWaveplateAngle != null) {
                     waveplateCorrection.ScreenPolarizationDeg = display.DisplayProperties.ScreenPolarizationAngle.Value;
                     waveplateCorrection.EyePolarizationAngleDeg = glasses.GlassesPolarizationAngle.Value;
                     waveplateCorrection.WaveplateAngleDeg = glasses.QuarterWaveplateAngle.Value;
                     _useWaveplateCorrection = true;
                 }
-                else
-                {
+                else {
                     _useWaveplateCorrection = false;
                 }
             }
 
             var pose = glasses?.GetEyePose(left, 0.05f);
-            if (pose.HasValue)
-            {
+            if (pose.HasValue) {
                 waveplateCorrection.GlassesRotation = pose.Value.rotation;
                 camera.transform.localPosition = pose.Value.position;
             }
-            else
-            {
+            else {
                 camera.transform.localPosition += new Vector3(left ? -0.03f : 0.03f, 0, 0);
             }
 
-            if (_useWaveplateCorrection)
-            {
+            if (_useWaveplateCorrection) {
                 var transmittance = waveplateCorrection.GetTransmittance();
                 transmittance.x *= transmittance.x;
                 transmittance.y *= transmittance.y;
@@ -139,20 +126,17 @@ namespace Illumetry.Unity
 
                 _brightness = attenuation.x + attenuation.y + attenuation.z;
                 const float targetBrightness = 2.3f;
-                if (_brightness > targetBrightness)
-                {
+                if (_brightness > targetBrightness) {
                     attenuation *= targetBrightness / _brightness;
                 }
                 _imageCorrectionMaterial.SetVector("Attenuation", attenuation);
             }
-            else
-            {
+            else {
                 _imageCorrectionMaterial.SetVector("Attenuation", Vector3.one);
             }
         }
 
-        private void LateUpdate()
-        {
+        private void LateUpdate() {
             /*
             if (UnityEngine.Input.GetKeyDown(KeyCode.F1)) { 
                 UseOverdriveCorrection = true;
@@ -177,14 +161,12 @@ namespace Illumetry.Unity
             }*/
         }
 
-        private void SetProjectionMatrix(Camera camera)
-        {
+        private void SetProjectionMatrix(Camera camera) {
             var display = GetComponent<IDisplay>();
             camera.projectionMatrix = display.GetProjectionMatrix(camera.transform.localPosition, camera.nearClipPlane, camera.farClipPlane);
         }
 
-        private void DrawGlQuad()
-        {
+        private void DrawGlQuad() {
             GL.Begin(GL.QUADS);
             GL.Vertex3(-1, -1, 0);
             GL.Vertex3(-1, 1, 0);
@@ -193,8 +175,7 @@ namespace Illumetry.Unity
             GL.End();
         }
 
-        private void RenderQuad(bool left)
-        {
+        private void RenderQuad(bool left) {
             var camera = GetComponentInChildren<Camera>();
             SetCameraPosition(camera, left);
             SetProjectionMatrix(camera);
@@ -208,7 +189,7 @@ namespace Illumetry.Unity
             _imageCorrectionMaterial.SetTexture("CurrentFrame", _currentRenderTexture);
             _imageCorrectionMaterial.SetTexture("PreviousOverdriveFrame", GetPreviousOverdriveRenderTexture(left));
             _imageCorrectionMaterial.SetInt("FrameN", _frameN);
-            _imageCorrectionMaterial.SetInt("UseOverdriveCorrection", _useOverdriveCorrection ? 1 : 0);
+            _imageCorrectionMaterial.SetInt("UseOverdriveCorrection", UseOverdriveCorrection ? 1 : 0);
             _imageCorrectionMaterial.SetInt("UseGammaCorrection", _useGammaCorrection ? 1 : 0);
             _imageCorrectionMaterial.SetInt("UseLimitsCorrection", _useLimitsCorrection ? 1 : 0);
             _imageCorrectionMaterial.SetFloat("CommonGamma", CommonGamma);
@@ -229,39 +210,50 @@ namespace Illumetry.Unity
             DrawGlQuad();
         }
 
-        private void OnBeforeRender()
-        {
+       /* Stopwatch debugStopWatchRenderInfo = new Stopwatch();
+        StringBuilder debugTimingRenderInfo = new StringBuilder();*/
+
+        private void OnBeforeRender() {
+
             var display = GetComponent<IDisplay>();
             display?.DisplayProperties?.SetToShader();
 
+           /* debugTimingRenderInfo.AppendLine("------------------------");
+            debugTimingRenderInfo.AppendLine($"Elapsed milliseconds (BEFORE RESTART TIMER): {debugStopWatchRenderInfo.GetElapsedMillisecondsWithFractionalPart()}");
+            debugStopWatchRenderInfo.Restart();*/
+
+            var timer = Stopwatch.StartNew();
+
+           // debugTimingRenderInfo.AppendLine($"Start timers!");
             OnBeforeRendererL?.Invoke();
             RenderQuad(true);
 
-#if !UNITY_EDITOR
-      WaitPeriod(display);  
-#endif
+          //  debugTimingRenderInfo.AppendLine($"Elapsed milliseconds (AFTER QUAD 1): {timer.GetElapsedMillisecondsWithFractionalPart()}");
+            WaitPeriod(display, timer);
+         //   debugTimingRenderInfo.AppendLine($"Elapsed milliseconds (BEFORE QUAD 2 | AFTER WAIT PERIOD): {debugStopWatchRenderInfo.GetElapsedMillisecondsWithFractionalPart()}");
 
             OnBeforeRendererR?.Invoke();
             RenderQuad(false);
         }
 
-        private void WaitPeriod(IDisplay display)
-        {
-            var timer = Stopwatch.StartNew();
+       /* private void OnApplicationQuit() {
+            Debug.Log(debugTimingRenderInfo.ToString());
+        }
+       */
+
+        private void WaitPeriod(IDisplay display, Stopwatch timer) {
             var fps = display?.DisplayProperties?.Fps ?? 120;
             var periodMicroseconds = 1000000.0 / fps;
 
 
-            while (true)
-            {
+            while (true) {
                 var microseconds = 1000000 * timer.ElapsedTicks / (double)Stopwatch.Frequency;
                 if (microseconds >= periodMicroseconds)
                     break;
             }
         }
 
-        protected override IEnumerable StateMachine()
-        {
+        protected override IEnumerable StateMachine() {
             string status = "";
 
             goto WaitingForDisplay;
@@ -274,14 +266,12 @@ namespace Illumetry.Unity
 
             var display = GetComponent<IDisplay>();
 
-            if (display == null)
-            {
+            if (display == null) {
                 yield return status;
                 goto WaitingForDisplay;
             }
 
-            if (display.DisplayProperties == null)
-            {
+            if (display.DisplayProperties == null) {
                 status = "Waiting for DisplayProperties";
                 yield return status;
                 goto WaitingForDisplay;
@@ -294,8 +284,7 @@ namespace Illumetry.Unity
             if (Destroying) yield break;
             status = "Camera component not found";
             var camera = GetComponentInChildren<Camera>();
-            if (!camera)
-            {
+            if (!camera) {
                 yield return status;
                 goto WaitingForCamera;
             }
@@ -305,19 +294,17 @@ namespace Illumetry.Unity
             _imageCorrectionMaterial = new Material(_imageCorrectionShader);
             _copyMaterial = new Material(_copyShader);
 
-            var overdriveRenderTextureDescriptor = new RenderTextureDescriptor(0, 0)
-            {
+            var overdriveRenderTextureDescriptor = new RenderTextureDescriptor(0, 0) {
                 dimension = UnityEngine.Rendering.TextureDimension.Tex2D,
                 width = _displayResolution.x,
                 height = _displayResolution.y,
-                graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_UNorm,
+                graphicsFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat,
                 volumeDepth = 1,
                 msaaSamples = 1,
             };
 
             _renderTextures = new RenderTexture[2];
-            for (int i = 0; i < _renderTextures.Length; i++)
-            {
+            for (int i = 0; i < _renderTextures.Length; i++) {
                 _renderTextures[i] = new RenderTexture(overdriveRenderTextureDescriptor);
                 _renderTextures[i].name = "RenderTexture_" + i;
                 _renderTextures[i].filterMode = FilterMode.Point;
@@ -335,16 +322,12 @@ namespace Illumetry.Unity
             {
                 Application.onBeforeRender += OnBeforeRender;
 
-                using (var _ = new Disposable(() =>
-                {
+                using (var _ = new Disposable(() => {
                     Application.onBeforeRender -= OnBeforeRender;
 
-                    if (_renderTextures != null)
-                    {
-                        foreach (var texture in _renderTextures)
-                        {
-                            if (texture != null)
-                            {
+                    if (_renderTextures != null) {
+                        foreach (var texture in _renderTextures) {
+                            if (texture != null) {
                                 texture.Release();
                             }
                         }
@@ -352,18 +335,14 @@ namespace Illumetry.Unity
                         _renderTextures = null;
                     }
 
-                    if (_currentRenderTexture != null)
-                    {
+                    if (_currentRenderTexture != null) {
                         _currentRenderTexture.Release();
                         _currentRenderTexture = null;
                     }
-                }))
-                {
-                    while (!Destroying)
-                    {
+                })) {
+                    while (!Destroying) {
                         var currentDisplayResolution = display?.DisplayProperties.Resolution;
-                        if (currentDisplayResolution != _displayResolution)
-                        {
+                        if (currentDisplayResolution != _displayResolution) {
                             goto WaitingForDisplay;
                         }
 

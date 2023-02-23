@@ -2,15 +2,13 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Illumetry.Unity.Demo
-{
+namespace Illumetry.Unity.Demo {
     [RequireComponent(typeof(Rigidbody))]
-    public class Cube : MonoBehaviour, IStylusGrabbable
-    {
+    public class Cube : MonoBehaviour, IStylusGrabbable {
         public Transform visual;
         public int InstanceId => gameObject.GetInstanceID();
         public event Action<IStylusGrabbable> OnDestroing;
-        
+
         private Dictionary<int, StylusGrabber> _stylusGrabbers = new Dictionary<int, StylusGrabber>();
         private Rigidbody _rb;
         private FixedJoint _fixedJoint;
@@ -23,8 +21,7 @@ namespace Illumetry.Unity.Demo
         private Quaternion _visualLocalRot;
         private Vector3 _visualLocalScale;
 
-        private void Awake()
-        {
+        private void Awake() {
             _startPos = transform.position;
             _startRot = transform.rotation;
 
@@ -33,18 +30,14 @@ namespace Illumetry.Unity.Demo
             _visualLocalScale = visual.localScale;
         }
 
-        private void OnEnable()
-        {
-            if (_rb == null)
-            {
+        private void OnEnable() {
+            if (_rb == null) {
                 _rb = GetComponent<Rigidbody>();
             }
         }
 
-        public void OnStartGrab(StylusGrabber stylusGrabber)
-        {
-            if (stylusGrabber == null || stylusGrabber.Stylus == null)
-            {
+        public void OnStartGrab(StylusGrabber stylusGrabber) {
+            if (stylusGrabber == null || stylusGrabber.Stylus == null) {
                 return;
             }
 
@@ -52,15 +45,12 @@ namespace Illumetry.Unity.Demo
             UpdateGrabState();
         }
 
-        public void OnGrabProcess(StylusGrabber stylusGrabber)
-        {
+        public void OnGrabProcess(StylusGrabber stylusGrabber) {
 
         }
 
-        public void OnEndGrab(StylusGrabber stylusGrabber)
-        {
-            if (stylusGrabber == null || stylusGrabber.Stylus == null)
-            {
+        public void OnEndGrab(StylusGrabber stylusGrabber) {
+            if (stylusGrabber == null || stylusGrabber.Stylus == null) {
                 return;
             }
 
@@ -69,10 +59,8 @@ namespace Illumetry.Unity.Demo
             UpdateGrabState();
         }
 
-        private void SaveLastGrabVelocities(StylusGrabber stylusGrabber)
-        {
-            if (stylusGrabber == null || stylusGrabber.Stylus == null)
-            {
+        private void SaveLastGrabVelocities(StylusGrabber stylusGrabber) {
+            if (stylusGrabber == null || stylusGrabber.Stylus == null) {
                 _lastGrabVelocity = Vector3.zero;
                 _lastGrabAngularVelocity = Vector3.zero;
                 return;
@@ -82,15 +70,12 @@ namespace Illumetry.Unity.Demo
             _lastGrabAngularVelocity = stylusGrabber.Stylus.ExtrapolatedAngularVelocity;
         }
 
-        private void UpdateGrabState()
-        {
+        private void UpdateGrabState() {
             StylusGrabber stylusGrabber = GetCurrentGrabber();
             bool isGrab = stylusGrabber != null;
 
-            if (isGrab)
-            {
-                if (_fixedJoint == null)
-                {
+            if (isGrab) {
+                if (_fixedJoint == null) {
                     _fixedJoint = gameObject.AddComponent<FixedJoint>();
                 }
 
@@ -98,10 +83,8 @@ namespace Illumetry.Unity.Demo
                 _fixedJoint.connectedBody = stylusGrabber.PhysicComponent;
                 _rb.useGravity = false;
             }
-            else
-            {
-                if (_fixedJoint != null)
-                {
+            else {
+                if (_fixedJoint != null) {
                     Destroy(_fixedJoint);
                 }
 
@@ -113,41 +96,33 @@ namespace Illumetry.Unity.Demo
             }
         }
 
-        private void OnDestroy()
-        {
+        private void OnDestroy() {
             SetVisualParentMe();
             OnDestroing?.Invoke(this);
         }
 
-        private void SetVisualParentGrabber(StylusGrabber grabber)
-        {
+        private void SetVisualParentGrabber(StylusGrabber grabber) {
             visual.SetParent(grabber.transform);
         }
 
-        private void SetVisualParentMe()
-        {
+        private void SetVisualParentMe() {
             visual.SetParent(transform);
             visual.transform.localPosition = _visualLocalPos;
             visual.transform.localRotation = _visualLocalRot;
             visual.transform.localScale = _visualLocalScale;
         }
 
-        private StylusGrabber GetCurrentGrabber()
-        {
-            foreach (var kvp in _stylusGrabbers)
-            {
+        private StylusGrabber GetCurrentGrabber() {
+            foreach (var kvp in _stylusGrabbers) {
                 return kvp.Value;
             }
 
             return null;
         }
 
-        private void Update()
-        {
-            if (Input.GetKeyDown(KeyCode.R))
-            {
-                if (_rb != null)
-                {
+        private void Update() {
+            if (Input.GetKeyDown(KeyCode.R)) {
+                if (_rb != null) {
                     _rb.velocity = Vector3.zero;
                     _rb.angularVelocity = Vector3.zero;
                 }
