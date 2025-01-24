@@ -22,6 +22,9 @@ namespace Illumetry.Unity {
         [Tooltip("Select R16G16B16A16_SFloat or R32G32B32A32_SFloat format if HDR rendering is required")]
         public UnityEngine.Experimental.Rendering.GraphicsFormat RenderTargetFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat;
 
+        [Tooltip("Select only depth formats [D16.., D24.., D32]")]
+        public UnityEngine.Experimental.Rendering.GraphicsFormat DepthTargetFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.D24_UNorm_S8_UInt;
+
         [Range(0.3f, 3)] public float CommonGamma = 1.0f;
 
         [HideInInspector] public bool Mono;
@@ -312,9 +315,8 @@ namespace Illumetry.Unity {
 
             RenderTextureDescriptor currentRenderTextureDescriptor = overdriveRenderTextureDescriptor;
             currentRenderTextureDescriptor.graphicsFormat = RenderTargetFormat;
-
+            currentRenderTextureDescriptor.depthStencilFormat = DepthTargetFormat;
             //currentRenderTextureDescriptor.msaaSamples = 8;
-            //currentRenderTextureDescriptor.depthStencilFormat = UnityEngine.Experimental.Rendering.GraphicsFormat.D32_SFloat;
 
             _currentRenderTexture = new RenderTexture(currentRenderTextureDescriptor);
             _currentRenderTexture.filterMode = FilterMode.Point;
