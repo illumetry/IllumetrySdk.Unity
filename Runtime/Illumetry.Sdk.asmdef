@@ -4,7 +4,13 @@
     "references": [
         "Antilatency.SDK"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor",
+        "LinuxStandalone64",
+        "WindowsStandalone64",
+        "WindowsStandalone32",
+        "WSA"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,
